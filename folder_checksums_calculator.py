@@ -40,7 +40,7 @@ if os.path.isdir (dir) == False:
         print ("Entered path does not exist.")
     exit()
 
-#list of all files in all subfolders
+# list of all files in all subfolders
 files = list()
 for (dirpath, dirnames, filenames) in os.walk(dir):
     files += [os.path.join(dirpath, file) for file in filenames]
@@ -50,22 +50,25 @@ if len(files) == 0:
     exit()
 
 
-#filtering out old database's files (checksums_list_for_... .txt) if they are in the current folder
+# filtering out old database's files (checksums_list_for_... .txt) if they are in the current folder
 old_summaries = [filename for filename in os.listdir(dir) if filename.startswith("checksums_list_for")]
-filtered = [x for x in files if os.path.basename(x) not in old_summaries]
+files = [x for x in files if os.path.basename(x) not in old_summaries] #list of all files without old checksums_list_for_... .txt files
 
-files = filtered #list of all files without old checksums_list_for_... .txt files
+# get size of all files in current folder
+folder_size = 0
+for fs in files:
+    folder_size += os.path.getsize(fs)
 
 dir = dir + '/' # some cosmetic
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
 database_location = dir + database_filename
 database = open (database_location, "w")
-database.write (f"There are {len(files)} files in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
+database.write (f"Checksums calculated for {len(files)} files with a total size of {folder_size} bytes in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
 
 for current_file in files:
     displayed_filename = current_file.replace(dir, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-    print (f"Calculating SHA1 for: {displayed_filename}")
+    print (f"Calculating SHA1 for {files.index(current_file)+1} of {len(files)} files: {displayed_filename}")
     sum = hash_calc(current_file) + '\n'
     print (sum)
     database.write (displayed_filename + '\n' + sum + '\n')
@@ -80,4 +83,4 @@ if len(old_summaries) > 0:
         print(f"{len(old_summaries)} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
 
 print(30*"-")
-print(f"SHA1 calculated for {len(files)} files.\nSummary is here: {database_filename}")
+print(f"SHA1 calculated for {len(files)} files with a total size of {folder_size} bytes.\nSummary is here: {database_filename}")
