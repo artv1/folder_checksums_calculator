@@ -127,17 +127,25 @@ for fs in files:
 
 dir = dir + '/' # some cosmetic
 
-database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
-database_location = dir + database_filename
-database = open (database_location, "w")
-database.write (f"Checksums calculated for {len(files)} files with a total size of {folder_size} bytes in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
+# to optimize disk usage, first write the database to ram
+database_ram = list()
 
+# calculating checksums
 for current_file in files:
     displayed_filename = current_file.replace(dir, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
     print (f"Calculating SHA1 for {files.index(current_file)+1} of {len(files)} files: {displayed_filename}")
     sha1_sum = sha1_calc(current_file) + '\n'
     print (sha1_sum)
-    database.write (displayed_filename + '\n' + sha1_sum + '\n')
+    database_ram += [displayed_filename + '\n' + sha1_sum + '\n']
+
+database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
+database_location = dir + database_filename
+database = open (database_location, "w")
+database.write (f"Checksums calculated for {len(files)} files with a total size of {folder_size} bytes in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
+
+# writing database to the file
+for li in database_ram:
+    database.write(li)
 
 database.close
 
