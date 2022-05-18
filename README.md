@@ -6,15 +6,15 @@ To use this console utility, you must have Python installed on your computer. If
     python folder_checksums_calculator.py
 
 ---
-Argument can also be used to specify the path to a folder or a previous computed database file. For example:
+Argument can be used to specify the path to the folder with files. For example:
 
     python folder_checksums_calculator.py /home/user/folder-to-work
 
-    python folder_checksums_calculator.py checksums_list_for... .txt
-
 To verify the files in a folder, simply use the previously created database file 'checksums_list_for... .txt' as the path
 
-If you just run the program without argument by: "python folder_checksums_calculator.py"
+    python folder_checksums_calculator.py checksums_list_for... .txt
+
+If you just run the program without any argument by: "python folder_checksums_calculator.py"
 the program will prompt you to enter the path to the folder for which you want to calculate sha1 for all files. In this field, you can also specify the path to the 'database' (list-file) to check the integrity of the files contained in it.
 
 ---
