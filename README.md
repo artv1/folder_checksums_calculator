@@ -6,6 +6,7 @@ Type in terminal:
 
 python folder_checksums_calculator.py
 
+--------
 Argument can also be used to specify the path to a folder or a previous computed database file. For example:
 
 python folder_checksums_calculator.py /home/user/folder-to-work
