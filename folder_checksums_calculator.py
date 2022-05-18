@@ -26,7 +26,7 @@ if len(sys.argv) > 1:
 
 else:
     # if no argument detected
-    dir = input("Enter folder: ") #getting the path to the working folder
+    dir = input("Enter path: ") #getting the path to the working folder
 
 # removing the '/' at the end of the path string, if present; to bring it to a single form
 if dir != '' and dir[-1]=='/':
@@ -115,7 +115,6 @@ if len(files) == 0:
     print("NO files in this folder. There is nothing to do...")
     exit()
 
-
 # filtering out old database's files (checksums_list_for_... .txt) if they are in the current folder
 old_summaries = [filename for filename in os.listdir(dir) if filename.startswith("checksums_list_for")]
 files = [x for x in files if os.path.basename(x) not in old_summaries] #list of all files without old checksums_list_for_... .txt files
@@ -139,8 +138,7 @@ for current_file in files:
     database_ram += [displayed_filename + '\n' + sha1_sum + '\n']
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
-database_location = dir + database_filename
-database = open (database_location, "w")
+database = open(dir + database_filename, "w")
 database.write (f"Checksums calculated for {len(files)} files with a total size of {folder_size} bytes in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
 
 # writing database to the file
