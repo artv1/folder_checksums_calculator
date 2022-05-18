@@ -4,7 +4,6 @@ The program calculates SHA1 checksums for all files in a given folder, as well a
 To use this console utility, you must have Python installed on your computer. If it's done, type in terminal:
 
     python folder_checksums_calculator.py
-
 ---
 Argument can be used to specify the path to the folder with files. For example:
 
