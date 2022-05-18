@@ -7,6 +7,7 @@ Type in terminal: python folder_checksums_calculator.py
 Argument can also be used to specify the path to a folder or a previous computed database file. For example:
 
 python folder_checksums_calculator.py /home/user/folder-to-work
+
 python folder_checksums_calculator.py checksums_list_for... .txt
 
 To verify the files in a folder, simply use the previously created database file 'checksums_list_for... .txt' as the path
