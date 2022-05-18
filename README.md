@@ -2,7 +2,9 @@
 The program calculates SHA1 checksums for all files in a given folder, as well as its subfolders. A list of all files and their checksums is saved and can be used to check the integrity of the data.
 
 To use this console utility, you must have Python installed on your computer.
-Type in terminal: python folder_checksums_calculator.py
+Type in terminal: 
+
+python folder_checksums_calculator.py
 
 Argument can also be used to specify the path to a folder or a previous computed database file. For example:
 
