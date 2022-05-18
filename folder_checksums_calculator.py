@@ -115,7 +115,6 @@ if len(files) == 0:
     print("NO files in this folder. There is nothing to do...")
     exit()
 
-
 # filtering out old database's files (checksums_list_for_... .txt) if they are in the current folder
 old_summaries = [filename for filename in os.listdir(dir) if filename.startswith("checksums_list_for")]
 files = [x for x in files if os.path.basename(x) not in old_summaries] #list of all files without old checksums_list_for_... .txt files
