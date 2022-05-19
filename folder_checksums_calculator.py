@@ -11,6 +11,26 @@ def sha1_calc(filename):
             file_hash.update(chunk)
     return file_hash.hexdigest()
 
+# converting bytes to readable form
+def converting_bytes(bytes):
+    converted = bytes
+    if converted > 1024:
+        converted /= 1024
+        xB = 'KiB'
+        if converted > 1024:
+            converted /= 1024
+            xB = 'MiB'
+            if converted > 1024:
+                converted /= 1024
+                xB = 'GiB'
+                if converted > 1024:
+                    converted /= 1024
+                    xB = 'TiB'
+    else:
+        return f"{bytes} bytes"
+
+    return f"{str(round(converted,1))} {xB} ({'{:,}'.format(bytes)} bytes)"
+
 #terminal argument input
 if len(sys.argv) > 1:
     # if argument contains spaces, use all arguments to build path
@@ -78,7 +98,7 @@ if os.path.isfile (dir) == True and dir.startswith(os.path.basename(dir)) == dir
 
     print("Total summary:")
     print(17*"-")
-    print (f"{len(good_files)} file(s) passed verification test\n{len(bad_files)} file(s) did NOT pass verification\n{number_of_lost_files} file(s) not found in the folder\n")
+    print (f"{len(good_files)} file(s) passed verification test\n{len(bad_files)} file(s) failed verification\n{number_of_lost_files} file(s) not found in the folder\n")
 
     if len(bad_files) > 0:
         print ("Checksums do not match for these files:")
@@ -139,7 +159,7 @@ for current_file in files:
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
 database = open(dir + database_filename, "w")
-database.write (f"Checksums calculated for {len(files)} files with a total size of {folder_size} bytes in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
+database.write (f"Checksums calculated for {len(files)} files with a total size of {converting_bytes(folder_size)} in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
 
 # writing database to the file
 for li in database_ram:
@@ -155,4 +175,4 @@ if len(old_summaries) > 0:
         print(f"{len(old_summaries)} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
 
 print(30*"-")
-print(f"SHA1 calculated for {len(files)} files with a total size of {folder_size} bytes.\nSummary is here: {database_filename}")
+print(f"SHA1 calculated for {len(files)} files with a total size of {converting_bytes(folder_size)}.\nSummary is here: {database_filename}")
