@@ -48,9 +48,7 @@ else:
     # if no argument detected
     dir = input("Enter path: ") #getting the path to the working folder
 
-# removing the '/' at the end of the path string, if present; to bring it to a single form
-if dir != '' and dir[-1]=='/':
-    dir = dir[:-1]
+dir = os.path.abspath(dir)
 
 '''
 Check if the specified [dir] is the path to the database file.
@@ -144,7 +142,7 @@ folder_size = 0
 for fs in files:
     folder_size += os.path.getsize(fs)
 
-dir = dir + '/' # some cosmetic
+dir = os.path.join(dir,'')
 
 # to optimize disk usage, first write the database to ram
 database_ram = list()
