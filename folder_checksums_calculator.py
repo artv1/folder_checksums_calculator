@@ -56,7 +56,7 @@ If so, then the program works in the mode of checking existing files for complia
 If not, the program skips this module and works in the mode of calculating checksums in the specified folder
 '''
 
-if os.path.isfile (dir) == True and os.path.basename(dir).startswith("checksums_list_for_") == True:
+if os.path.isfile (dir) and os.path.basename(dir).startswith("checksums_list_for_"):
     print (f"{50*'-'}\nYou've selected a DATABASE file: {os.path.basename(dir)}\nLet's begin verification\n{50*'-'}\n")
 
     # now 'dir' is path to database file, so open it
