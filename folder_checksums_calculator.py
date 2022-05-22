@@ -36,8 +36,8 @@ if len(sys.argv) > 1:
     # if argument contains spaces, use all arguments to build path
     joint_path = " ".join(sys.argv[1:])
 
-    #if argument is path to folder or file, use it
-    if os.path.isdir(joint_path) == True or os.path.isfile (joint_path) == True:
+    # if the argument is a path to a folder or file, use it
+    if os.path.isdir(joint_path) or os.path.isfile (joint_path):
         dir = joint_path
 
     else:
@@ -161,7 +161,7 @@ database.write (f"Checksums calculated for {len(files)} files with a total size 
 
 # writing database to the file
 for li in database_ram:
-    database.write(li)
+    database.write(li.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
 
 database.close
 
