@@ -60,7 +60,7 @@ if os.path.isfile (dir) and os.path.basename(dir).startswith("checksums_list_for
     print (f"{50*'-'}\nYou've selected a DATABASE file: {os.path.basename(dir)}\nLet's begin verification\n{50*'-'}\n")
 
     # now 'dir' is path to database file, so open it
-    dfile = open(dir)
+    dfile = open(dir, encoding="utf-8")
 
     # both options may be used
     #check_dir = os.path.dirname(os.path.abspath(dir))+'/'
@@ -156,7 +156,7 @@ for current_file in files:
     database_ram += [displayed_filename + '\n' + sha1_sum + '\n']
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
-database = open(dir + database_filename, "w")
+database = open(dir + database_filename, "w", encoding="utf-8")
 database.write (f"Checksums calculated for {len(files)} files with a total size of {converting_bytes(folder_size)} in the folder: {folder_name}\nThe list of files and SHA1 checksums are listed below:\n{54*'-'}\n\n")
 
 # writing database to the file
