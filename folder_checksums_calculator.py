@@ -41,7 +41,7 @@ if len(sys.argv) > 1:
         dir = joint_path
 
     else:
-        print (f"You have used the wrong argument '{joint_path}'. It should be the path to a folder or file")
+        print (f"Path '{joint_path}' not found. Enter the path to the folder or file")
         exit()
 
 else:
