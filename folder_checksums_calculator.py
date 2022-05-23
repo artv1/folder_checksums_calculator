@@ -62,8 +62,6 @@ if os.path.isfile (dir) and os.path.basename(dir).startswith("checksums_list_for
     # now 'dir' is path to database file, so open it
     dfile = open(dir, encoding="utf-8")
 
-    # both options may be used
-    #check_dir = os.path.dirname(os.path.abspath(dir))+'/'
     check_dir = dir.replace(os.path.basename(dir), '')
 
     d_content = dfile.readlines()
