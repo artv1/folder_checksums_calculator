@@ -95,9 +95,8 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
             
             if len(old_sha) == 40:
                 # the database stores SHA-1 checksums
-                ch_sum = sha1_calc(check_dir + cheking_file)
-
                 print(f"Calculating SHA-1 for {int(clear_list.index(cheking_file)/2+1)} of {int(len(clear_list)/2)} files in the list")
+                ch_sum = sha1_calc(check_dir + cheking_file)
 
                 if old_sha == ch_sum:
                     good_files += [cheking_file]
@@ -108,9 +107,8 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
             elif len(old_sha) == 64:
                 # the database stores SHA-256 checksums
-                ch_sum = sha256_calc(check_dir + cheking_file)
-
                 print(f"Calculating SHA-256 for {int(clear_list.index(cheking_file)/2+1)} of {int(len(clear_list)/2)} files in the list")
+                ch_sum = sha256_calc(check_dir + cheking_file)
 
                 if old_sha == ch_sum:
                     good_files += [cheking_file]
@@ -121,9 +119,8 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
             elif len(old_sha) == 128:
                 # the database stores SHA-512 checksums
-                ch_sum = sha512_calc(check_dir + cheking_file)
-
                 print(f"Calculating SHA-512 for {int(clear_list.index(cheking_file)/2+1)} of {int(len(clear_list)/2)} files in the list")
+                ch_sum = sha512_calc(check_dir + cheking_file)
 
                 if old_sha == ch_sum:
                     good_files += [cheking_file]
