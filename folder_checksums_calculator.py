@@ -100,7 +100,7 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
                 if old_sha == ch_sum:
                     good_files += [cheking_file]
-                    print(f"{cheking_file}: file checked, checksums matched\nSHA-1: {ch_sum}\n")
+                    print(f"{cheking_file}: file checked, checksum matched\nSHA-1: {ch_sum}\n")
                 else:
                     bad_files += [cheking_file]
                     print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated SHA-1: {ch_sum}\nbut the database for this file stores SHA-1:\n{old_sha}\n")
@@ -112,7 +112,7 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
                 if old_sha == ch_sum:
                     good_files += [cheking_file]
-                    print(f"{cheking_file}: file checked, checksums matched\nSHA-256: {ch_sum}\n")
+                    print(f"{cheking_file}: file checked, checksum matched\nSHA-256: {ch_sum}\n")
                 else:
                     bad_files += [cheking_file]
                     print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated SHA-256: {ch_sum}\nbut the database for this file stores SHA-256:\n{old_sha}\n")
@@ -124,7 +124,7 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
                 if old_sha == ch_sum:
                     good_files += [cheking_file]
-                    print(f"{cheking_file}: file checked, checksums matched\nSHA-512: {ch_sum}\n")
+                    print(f"{cheking_file}: file checked, checksum matched\nSHA-512: {ch_sum}\n")
                 else:
                     bad_files += [cheking_file]
                     print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated SHA-512: {ch_sum}\nbut the database for this file stores SHA-512:\n{old_sha}\n")
