@@ -195,11 +195,14 @@ dir = os.path.join(dir,'')
 # to optimize disk usage, first write the database to ram
 database_ram = list()
 
-print(f"{50*'-'}\nThis application allows you to calculate SHA-1, SHA-256 or SHA-512 checksums for all files in the specified folder.\n\
-Their list and their checksums will be saved to a file that can later be used to check data integrity.\nSHA-1 is chosen by default due to its \
-superior computational speed.\nSHA-256 and SHA-512 are more reliable, but their computation is much slower\n{50*'*'}")
-
-print(f"If you choose to use SHA-1 press Enter\nTo use SHA-256 enter [2]\nTo use SHA-512 enter [3]\n{25*'*'}")
+print(f"""{50*'-'}
+This application allows you to calculate SHA-1, SHA-256 or SHA-512 checksums for all files in the specified folder.
+Their list and their checksums will be saved to a file that can later be used to check data integrity.
+SHA-1 is chosen by default due to its superior computational speed.
+SHA-256 and SHA-512 are more reliable, but their computation is much slower
+{50*'*'}
+If you choose to use SHA-1 press Enter\nTo use SHA-256 enter [2]\nTo use SHA-512 enter [3]
+{25*'*'}""")
 
 choised_sha_type = input("Your choise is: ")
 print(50*"-")

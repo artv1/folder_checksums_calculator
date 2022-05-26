@@ -17,4 +17,4 @@ If you just run the program without any argument by: "python folder_checksums_ca
 the program will prompt you to enter the path to the folder for which you want to calculate sha1 for all files. In this field, you can also specify the path to the 'database' (list-file) to check the integrity of the files contained in it.
 
 ---
-In short, it is possible to use both a command line argument and input inside a script to specify a path
+
