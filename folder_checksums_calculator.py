@@ -193,7 +193,7 @@ path = os.path.join(path,'')
 database_ram = list()
 
 print(f"""{50*'-'}
-There are {len(files)} files with a total size of {converting_bytes(folder_size)} in the folder and its subfolders.
+{len(files)} files with a total size of {converting_bytes(folder_size)} were found.
 
 The program will calculate SHA-1/256/512 checksums for all of them.
 A list of all files and their checksums will be saved and can be used to check data integrity.
