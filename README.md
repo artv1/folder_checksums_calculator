@@ -14,7 +14,7 @@ To verify the files in a folder, simply use the previously created database file
     python folder_checksums_calculator.py checksums_list_for... .txt
 
 If you just run the program without any argument by: "python folder_checksums_calculator.py"
-the program will prompt you to enter the path to the folder for which you want to calculate sha1 for all files. In this field, you can also specify the path to the 'database' (list-file) to check the integrity of the files contained in it.
+the program will prompt you to enter the path to the folder where you want to calculate checksums for all files. In this field, you can also specify the path to the 'database' to check the integrity of the files listed in it.
 
 ---
-
+A simple text file containing a list of files and their checksums is used as a database. This text file can also be opened and used from outside of this application.
