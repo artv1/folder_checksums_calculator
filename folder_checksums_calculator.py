@@ -163,7 +163,7 @@ if path == '':
 if not os.path.isdir(path):
     #if the user entered a file path instead of a folder path, compute a checksum for that file
     if os.path.isfile(path):
-        print(f"'{os.path.basename(path)}' is a file, NOT a folder!\nCalculating checksums for it.\n")
+        print(f"{40*'-'}\n'{os.path.basename(path)}' is a file, NOT a folder!\nCalculating checksums for it.\n")
         print(f"SHA-1:   {sha1_calc(path)}\nSHA-256: {sha256_calc(path)}\nSHA-512: {sha512_calc(path)}")
     else:
         print("Entered path does not exist.")
@@ -196,7 +196,7 @@ print(f"""{50*'-'}
 {len(files)} files with a total size of {converting_bytes(folder_size)} were found.
 
 The program will calculate SHA-1/256/512 checksums for all of them.
-A list of all files and their checksums will be saved and can be used to check data integrity.
+A list of files with their checksums will be saved and can be used to check the data integrity.
 
 SHA-1 is chosen by default due to its superior computational speed.
 SHA-256 and SHA-512 are more reliable, but their computation is slower.
@@ -241,7 +241,7 @@ else:
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
 database = open(path + database_filename, "w", encoding="utf-8")
-database.write(f"Checksums calculated for {len(files)} files with a total size of {converting_bytes(folder_size)} in the folder: {folder_name}\nThe list of files and {choised_sha_type} checksums are listed below:\n{54*'-'}\n\n")
+database.write(f"Checksums calculated for {len(files)} files with a total size of {converting_bytes(folder_size)} in the folder: {folder_name}\nThe list of files and {choised_sha_type} checksums are listed below:\n{56*'-'}\n\n")
 
 # writing database to the file
 for li in database_ram:
