@@ -47,6 +47,23 @@ def converting_bytes(bytes):
 
     return f"{str(round(converted,1))} {xB} ({'{:,}'.format(bytes)} bytes)"
 
+def filelist(thepath):
+    # list of all files in all subfolders
+    flist = list()
+    for (dirpath, dirnames, filenames) in os.walk(thepath):
+        flist += [os.path.join(dirpath, file) for file in filenames]
+
+    # filtering out old database's files (checksums_list_for_... .txt) if they are in the current folder
+    old_summaries = [filename for filename in os.listdir(thepath) if filename.startswith("checksums_list_for")]
+    flist = [x for x in flist if os.path.basename(x) not in old_summaries] # list of all files without old checksums_list_for_... .txt files
+
+    # get size of all files in current folder
+    fsize = 0
+    for fs in flist:
+        fsize += os.path.getsize(fs)
+
+    return flist, fsize, len(flist), len(old_summaries)
+
 #terminal argument input
 if len(sys.argv) > 1:
     # if argument contains spaces, use all arguments to build path
@@ -85,17 +102,20 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
     new_list = [s.replace("\n", "") for s in raw_data]
     clear_list = list(filter(None, new_list)) # list of files and hashsums only
 
+    files_inlist_number = int(len(clear_list)/2)
+
     good_files = list() # files that have been verified against database
     bad_files = list() # files that have NOT been verified against database
+    lost_files = list() # files that are in the list but not in the folder
 
-    for cheking_file in clear_list:
+    for cheking_file in clear_list[::2]:
         if os.path.isfile(check_dir + cheking_file):
             
             old_sha = clear_list[clear_list.index(cheking_file)+1] # next element is old sha1 from database
             
             if len(old_sha) == 40:
                 # the database stores SHA-1 checksums
-                print(f"Calculating SHA-1 for {int(clear_list.index(cheking_file)/2+1)} of {int(len(clear_list)/2)} files in the list")
+                print(f"Calculating SHA-1 for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
                 ch_sum = sha1_calc(check_dir + cheking_file)
 
                 if old_sha == ch_sum:
@@ -107,7 +127,7 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
             elif len(old_sha) == 64:
                 # the database stores SHA-256 checksums
-                print(f"Calculating SHA-256 for {int(clear_list.index(cheking_file)/2+1)} of {int(len(clear_list)/2)} files in the list")
+                print(f"Calculating SHA-256 for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
                 ch_sum = sha256_calc(check_dir + cheking_file)
 
                 if old_sha == ch_sum:
@@ -119,7 +139,7 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
 
             elif len(old_sha) == 128:
                 # the database stores SHA-512 checksums
-                print(f"Calculating SHA-512 for {int(clear_list.index(cheking_file)/2+1)} of {int(len(clear_list)/2)} files in the list")
+                print(f"Calculating SHA-512 for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
                 ch_sum = sha512_calc(check_dir + cheking_file)
 
                 if old_sha == ch_sum:
@@ -132,21 +152,35 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
             else:
                 print("Database error!")
                 exit()
+        else:
+            lost_files += [cheking_file]
 
-    # number of files that are in the list but not in the folder
-    number_of_lost_files = int(len(clear_list)/2)-(len(good_files)+len(bad_files))
+    # getting values
+    files, files_size, files_number, old_summaries_len = filelist(check_dir)
+    
+    number_of_new_files = files_number - files_inlist_number + len(lost_files)
 
     print(f"""
     Total summary:
     {17*'-'}
     {len(good_files)} file(s) passed verification test
     {len(bad_files)} file(s) failed verification
-    {number_of_lost_files} file(s) not found in the folder\n""")
+    {len(lost_files)} file(s) from the list not found in the folder
+    {number_of_new_files} new file(s) were found in the folder\n""")
 
     if len(bad_files) > 0:
-        print ("Checksums do not match for these files:")
-        for b_f in bad_files:
-            print(b_f)
+        inp_ch = input("To display a list of files that failed verification, type '1': ")
+        if inp_ch == '1':
+            print (f"Checksums do not match for these files:\n{40*'-'}")
+            for b_f in bad_files:
+                print(b_f)
+
+    if len(lost_files) > 0:
+        inp_ch = input("To display a list of lost or removed files, type '1': ")
+        if inp_ch == '1':
+            print (f"Files that are in the list but not in the folder:\n{40*'-'}")
+            for l_f in lost_files:
+                print(l_f)
 
     exit()
 
@@ -169,31 +203,15 @@ if not os.path.isdir(path):
         print("Entered path does not exist.")
     exit()
 
-# list of all files in all subfolders
-files = list()
-for (dirpath, dirnames, filenames) in os.walk(path):
-    files += [os.path.join(dirpath, file) for file in filenames]
+# getting values
+files, files_size, files_number, old_summaries_len = filelist(path)
 
-if len(files) == 0:
+if files_number == 0:
     print("NO files in this folder. There is nothing to do...")
     exit()
 
-# filtering out old database's files (checksums_list_for_... .txt) if they are in the current folder
-old_summaries = [filename for filename in os.listdir(path) if filename.startswith("checksums_list_for")]
-files = [x for x in files if os.path.basename(x) not in old_summaries] #list of all files without old checksums_list_for_... .txt files
-
-# get size of all files in current folder
-folder_size = 0
-for fs in files:
-    folder_size += os.path.getsize(fs)
-
-path = os.path.join(path,'')
-
-# to optimize disk usage, first write the database to ram
-database_ram = list()
-
 print(f"""{50*'-'}
-{len(files)} files with a total size of {converting_bytes(folder_size)} were found.
+{files_number} files with a total size of {converting_bytes(files_size)} were found.
 
 The program will calculate SHA-1/256/512 checksums for all of them.
 A list of files with their checksums will be saved and can be used to check the data integrity.
@@ -207,12 +225,17 @@ If you choose to use SHA-1 press 'Enter'\nTo use SHA-256 enter [2]\nTo use SHA-5
 choised_sha_type = input("Your choise is: ")
 print(50*"-")
 
+# to optimize disk usage, first write the database to ram
+database_ram = list()
+
+path = os.path.join(path,'')
+
 if choised_sha_type == '3':
     choised_sha_type = 'SHA-512'
     # calculating SHA512 checksums
     for current_file in files:
         displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-        print(f"Calculating SHA-512 for {files.index(current_file)+1} of {len(files)} files: {displayed_filename}")
+        print(f"Calculating SHA-512 for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
         sha_sum = sha512_calc(current_file) + '\n'
         print(sha_sum)
         database_ram += [displayed_filename + '\n' + sha_sum + '\n']
@@ -222,7 +245,7 @@ elif choised_sha_type == '2':
     # calculating SHA256 checksums
     for current_file in files:
         displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-        print(f"Calculating SHA-256 for {files.index(current_file)+1} of {len(files)} files: {displayed_filename}")
+        print(f"Calculating SHA-256 for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
         sha_sum = sha256_calc(current_file) + '\n'
         print(sha_sum)
         database_ram += [displayed_filename + '\n' + sha_sum + '\n']
@@ -233,7 +256,7 @@ else:
     # calculating SHA1 checksums
     for current_file in files:
         displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-        print(f"Calculating SHA-1 for {files.index(current_file)+1} of {len(files)} files: {displayed_filename}")
+        print(f"Calculating SHA-1 for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
         sha_sum = sha1_calc(current_file) + '\n'
         print(sha_sum)
         database_ram += [displayed_filename + '\n' + sha_sum + '\n']
@@ -241,7 +264,7 @@ else:
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
 database = open(path + database_filename, "w", encoding="utf-8")
-database.write(f"Checksums calculated for {len(files)} files with a total size of {converting_bytes(folder_size)} in the folder: {folder_name}\nThe list of files and {choised_sha_type} checksums are listed below:\n{56*'-'}\n\n")
+database.write(f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: {folder_name}\nThe list of files and {choised_sha_type} checksums are listed below:\n{56*'-'}\n\n")
 
 # writing database to the file
 for li in database_ram:
@@ -249,12 +272,12 @@ for li in database_ram:
 
 database.close
 
-if len(old_summaries) > 0:
+if old_summaries_len > 0:
     print(30*"-")
-    if len(old_summaries) == 1:
+    if old_summaries_len == 1:
         print(f"One old [checksums_list_for... .txt] file was found in the root of '{folder_name}' folder. It was excluded from the results.")
     else:
-        print(f"{len(old_summaries)} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
+        print(f"{old_summaries_len} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
 
 print(30*"-")
-print(f"{choised_sha_type} calculated for {len(files)} files with a total size of {converting_bytes(folder_size)}.\nSummary is here: {database_filename}")
+print(f"{choised_sha_type} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.\nSummary is here: {database_filename}")
