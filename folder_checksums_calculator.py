@@ -155,10 +155,14 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
         else:
             lost_files += [cheking_file]
 
-    # getting values
+    # getting values for current folder
     files, files_size, files_number, old_summaries_len = filelist(check_dir)
-    
-    number_of_new_files = files_number - files_inlist_number + len(lost_files)
+
+    # deleting part of path string before 'current folder', because only relative paths are stored in the database
+    files_ralative_path = [cf.replace(check_dir, '') for cf in files]
+
+    # files that are present in the folder but not in the database
+    new_files = [nf for nf in files_ralative_path if nf not in good_files and nf not in bad_files]
 
     print(f"""
     Total summary:
@@ -166,22 +170,31 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
     {len(good_files)} file(s) passed verification test
     {len(bad_files)} file(s) failed verification
     {len(lost_files)} file(s) from the list not found in the folder
-    {number_of_new_files} new file(s) were found in the folder\n""")
+    {len(new_files)} new file(s) were found in the folder\n""")
 
     if len(bad_files) > 0:
-        inp_ch = input("To display a list of files that failed verification, type '1': ")
+        inp_ch = input("To display a list of files that FAILED verification, type '1': ")
         if inp_ch == '1':
             print (f"Checksums do not match for these files:\n{40*'-'}")
-            for b_f in bad_files:
-                print(b_f)
+            for f in bad_files:
+                print(f)
+            print(40*'-')
 
     if len(lost_files) > 0:
-        inp_ch = input("To display a list of lost or removed files, type '1': ")
+        inp_ch = input("To display a list of lost or REMOVED files, type '1': ")
         if inp_ch == '1':
-            print (f"Files that are in the list but not in the folder:\n{40*'-'}")
-            for l_f in lost_files:
-                print(l_f)
+            print (f"Files that are in the database but not in the folder:\n{40*'-'}")
+            for f in lost_files:
+                print(f)
+            print(40*'-')
 
+    if len(new_files) > 0:
+        inp_ch = input("To display a list of NEW files, type '1': ")
+        if inp_ch == '1':
+            print (f"Files that are present in the folder but not in the database:\n{40*'-'}")
+            for f in new_files:
+                print(f)
+            print(40*'-')
     exit()
 
 
