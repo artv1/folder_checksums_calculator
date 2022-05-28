@@ -3,26 +3,18 @@
 import os, hashlib, sys
 from datetime import datetime
 
-# sha1 calculating
-def sha1_calc(filename):
-    with open(filename, "rb") as f:
+# sha calculating
+def sha_calc(filename, sha_type):
+    if sha_type == 'SHA-1':
         hash = hashlib.sha1()
-        while chunk := f.read(65536):
-            hash.update(chunk)
-    return hash.hexdigest()
-
-# sha256 calculating
-def sha256_calc(filename):
-    with open(filename, "rb") as f:
+    elif sha_type == 'SHA-256':
         hash = hashlib.sha256()
-        while chunk := f.read(65536):
-            hash.update(chunk)
-    return hash.hexdigest()
-
-# sha512 calculating
-def sha512_calc(filename):
-    with open(filename, "rb") as f:
+    elif sha_type == 'SHA-512':
         hash = hashlib.sha512()
+    else:
+        return 'Wrong SHA type'
+
+    with open(filename, "rb") as f:
         while chunk := f.read(65536):
             hash.update(chunk)
     return hash.hexdigest()
@@ -111,47 +103,28 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
     for cheking_file in clear_list[::2]:
         if os.path.isfile(check_dir + cheking_file):
             
-            old_sha = clear_list[clear_list.index(cheking_file)+1] # next element is old sha1 from database
+            old_sha = clear_list[clear_list.index(cheking_file)+1] # next element is old checksum from database
             
             if len(old_sha) == 40:
-                # the database stores SHA-1 checksums
-                print(f"Calculating SHA-1 for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
-                ch_sum = sha1_calc(check_dir + cheking_file)
-
-                if old_sha == ch_sum:
-                    good_files += [cheking_file]
-                    print(f"{cheking_file}: file checked, checksum matched\nSHA-1: {ch_sum}\n")
-                else:
-                    bad_files += [cheking_file]
-                    print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated SHA-1: {ch_sum}\nbut the database for this file stores SHA-1:\n{old_sha}\n")
-
+                shatype = 'SHA-1'
             elif len(old_sha) == 64:
-                # the database stores SHA-256 checksums
-                print(f"Calculating SHA-256 for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
-                ch_sum = sha256_calc(check_dir + cheking_file)
-
-                if old_sha == ch_sum:
-                    good_files += [cheking_file]
-                    print(f"{cheking_file}: file checked, checksum matched\nSHA-256: {ch_sum}\n")
-                else:
-                    bad_files += [cheking_file]
-                    print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated SHA-256: {ch_sum}\nbut the database for this file stores SHA-256:\n{old_sha}\n")
-
+                shatype = 'SHA-256'
             elif len(old_sha) == 128:
-                # the database stores SHA-512 checksums
-                print(f"Calculating SHA-512 for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
-                ch_sum = sha512_calc(check_dir + cheking_file)
-
-                if old_sha == ch_sum:
-                    good_files += [cheking_file]
-                    print(f"{cheking_file}: file checked, checksum matched\nSHA-512: {ch_sum}\n")
-                else:
-                    bad_files += [cheking_file]
-                    print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated SHA-512: {ch_sum}\nbut the database for this file stores SHA-512:\n{old_sha}\n")
-            
+                shatype = 'SHA-512'
             else:
                 print("Database error!")
                 exit()
+
+            print(f"Calculating {shatype} for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
+            ch_sum = sha_calc(check_dir + cheking_file, shatype)
+
+            if old_sha == ch_sum:
+                good_files += [cheking_file]
+                print(f"{cheking_file}: file checked, checksum matched\n{shatype}: {ch_sum}\n")
+            else:
+                bad_files += [cheking_file]
+                print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated {shatype}: {ch_sum}\nbut the database for this file stores {shatype}:\n{old_sha}\n")
+            
         else:
             lost_files += [cheking_file]
 
@@ -211,7 +184,7 @@ if not os.path.isdir(path):
     #if the user entered a file path instead of a folder path, compute a checksum for that file
     if os.path.isfile(path):
         print(f"{40*'-'}\n'{os.path.basename(path)}' is a file, NOT a folder!\nCalculating checksums for it.\n")
-        print(f"SHA-1:   {sha1_calc(path)}\nSHA-256: {sha256_calc(path)}\nSHA-512: {sha512_calc(path)}")
+        print(f"SHA-1:   {sha_calc(path, 'SHA-1')}\nSHA-256: {sha_calc(path, 'SHA-256')}\nSHA-512: {sha_calc(path, 'SHA-512')}")
     else:
         print("Entered path does not exist.")
     exit()
@@ -245,35 +218,17 @@ path = os.path.join(path,'')
 
 if choised_sha_type == '3':
     choised_sha_type = 'SHA-512'
-    # calculating SHA512 checksums
-    for current_file in files:
-        displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-        print(f"Calculating SHA-512 for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
-        sha_sum = sha512_calc(current_file) + '\n'
-        print(sha_sum)
-        database_ram += [displayed_filename + '\n' + sha_sum + '\n']
-
 elif choised_sha_type == '2':
     choised_sha_type = 'SHA-256'
-    # calculating SHA256 checksums
-    for current_file in files:
-        displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-        print(f"Calculating SHA-256 for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
-        sha_sum = sha256_calc(current_file) + '\n'
-        print(sha_sum)
-        database_ram += [displayed_filename + '\n' + sha_sum + '\n']
-
 else:
-    # if the user entered nothing {pressed 'Enter' only} or entered something undefined, just choose the default value
     choised_sha_type = 'SHA-1'
-    # calculating SHA1 checksums
-    for current_file in files:
-        displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-        print(f"Calculating SHA-1 for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
-        sha_sum = sha1_calc(current_file) + '\n'
-        print(sha_sum)
-        database_ram += [displayed_filename + '\n' + sha_sum + '\n']
 
+for current_file in files:
+        displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
+        print(f"Calculating {choised_sha_type} for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
+        sha_sum = sha_calc(current_file, choised_sha_type)
+        print(sha_sum + '\n')
+        database_ram += [displayed_filename + '\n' + sha_sum + '\n\n']
 
 database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
 database = open(path + database_filename, "w", encoding="utf-8")
