@@ -155,8 +155,8 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
         else:
             lost_files += [cheking_file]
 
-    # getting values for current folder
-    files, files_size, files_number, old_summaries_len = filelist(check_dir)
+    # getting a list of files in the current folder
+    files = filelist(check_dir)[0]
 
     # deleting part of path string before 'current folder', because only relative paths are stored in the database
     files_ralative_path = [cf.replace(check_dir, '') for cf in files]
