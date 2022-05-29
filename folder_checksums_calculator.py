@@ -56,30 +56,68 @@ def filelist(thepath):
 
     return flist, fsize, len(flist), len(old_summaries)
 
-#terminal argument input
-if len(sys.argv) > 1:
-    # if argument contains spaces, use all arguments to build path
-    joint_path = " ".join(sys.argv[1:])
+def folder_sha(path, folder_name):
+    # getting values
+    files, files_size, files_number, old_summaries_len = filelist(path)
 
-    # if the argument is a path to a folder or file, use it
-    if os.path.isdir(joint_path) or os.path.isfile (joint_path):
-        path = joint_path
-
-    else:
-        print (f"Path '{joint_path}' not found.")
+    if files_number == 0:
+        print("NO files in this folder. There is nothing to do...")
         exit()
 
-else:
-    # if no argument detected
-    path = input("Enter path: ") #getting the path to the working folder
+    print(f"{50*'-'}\n{files_number} files with a total size of {converting_bytes(files_size)} were found.\n\n"
+            "The program will calculate SHA-1/256/512 checksums for all of them.\n"
+            "A list of files with their checksums will be saved and can be used to check the data integrity.\n\n"
+            "SHA-1 is chosen by default due to its superior computational speed.\n"
+            "SHA-256 and SHA-512 are more reliable, but their computation is slower.\n"
+            f"{50*'*'}\nIf you choose to use SHA-1 press 'Enter'\nTo use SHA-256 enter [2]\nTo use SHA-512 enter [3]\n{25*'*'}")
 
-path = os.path.abspath(path)
+    shatype = input("Your choise is: ")
+    print(50*"-")
 
-# Check if the specified [path] is the path to the database file.
-# If so, then the program works in the mode of checking existing files for compliance with the database.
-# If not, the program skips this module and works in the mode of calculating checksums in the specified folder
+    if shatype == '3':
+        shatype = 'SHA-512'
+    elif shatype == '2':
+        shatype = 'SHA-256'
+    else:
+        shatype = 'SHA-1'
+    
+    # to optimize disk usage, first write the database to ram
+    database_ram = list()
 
-if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_for_"):
+    path = os.path.join(path,'')
+
+    for current_file in files:
+        displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
+        print(f"Calculating {shatype} for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
+        sha_sum = sha_calc(current_file, shatype)
+        print(sha_sum + '\n')
+        database_ram += [displayed_filename + '\n' + sha_sum + '\n\n']
+
+    database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
+    database = open(path + database_filename, "w", encoding="utf-8")
+    database.write(f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: {folder_name}\nThe list of files and {shatype} checksums are listed below:\n{56*'-'}\n\n")
+
+    # writing database to the file
+    for li in database_ram:
+        database.write(li.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
+
+    database.close
+
+    if old_summaries_len > 0:
+        print(30*"-")
+        if old_summaries_len == 1:
+            print(f"One old [checksums_list_for... .txt] file was found in the root of '{folder_name}' folder. It was excluded from the results.")
+        else:
+            print(f"{old_summaries_len} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
+
+    print(30*"-")
+    print(f"{shatype} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.\nSummary is here: {database_filename}")
+
+def file_sha(path, file_name):
+    print(f"{40*'-'}\n'{file_name}' is a file, NOT a folder!\nCalculating checksums for it.\n")
+    print(f"SHA-1:   {sha_calc(path, 'SHA-1')}\nSHA-256: {sha_calc(path, 'SHA-256')}\nSHA-512: {sha_calc(path, 'SHA-512')}")
+
+def verification_sha(path):
     print (f"{50*'-'}\nYou've selected a DATABASE file: {os.path.basename(path)}\nLet's begin verification\n{50*'-'}\n")
 
     # now 'path' is path to database file, so open it
@@ -170,81 +208,44 @@ if os.path.isfile(path) and os.path.basename(path).startswith("checksums_list_fo
             print(40*'-')
     exit()
 
-# If the specified [path] is NOT a path to a database file, the code below will run
-# Works in checksums calculation mode in the specified folder
+def path_input():
+    #terminal argument input
+    if len(sys.argv) > 1:
+        # if argument contains spaces, use all arguments to build path
+        joint_path = " ".join(sys.argv[1:])
 
-folder_name = os.path.basename(path) # when need to use only the folder name instead of the full path
+        # if the argument is a path to a folder or file, use it
+        if os.path.isdir(joint_path) or os.path.isfile (joint_path):
+            path = joint_path
+        else:
+            print (f"Path '{joint_path}' not found.")
+            exit()
+    else:
+        # if no argument detected
+        path = input("Enter path: ") # getting the path to the working folder
 
-if path == '':
-    path = os.path.abspath(os.getcwd())
-    folder_name = os.path.basename(path)
+    path = os.path.abspath(path)
 
-if not os.path.isdir(path):
-    #if the user entered a file path instead of a folder path, compute a checksum for that file
+    if path == '':
+        path = os.path.abspath(os.getcwd())
+    
+    return path, os.path.basename(path) # full path and only the folder or file name
+
+if __name__ == '__main__':
+    
+    path,fname = path_input()
+    
     if os.path.isfile(path):
-        print(f"{40*'-'}\n'{os.path.basename(path)}' is a file, NOT a folder!\nCalculating checksums for it.\n")
-        print(f"SHA-1:   {sha_calc(path, 'SHA-1')}\nSHA-256: {sha_calc(path, 'SHA-256')}\nSHA-512: {sha_calc(path, 'SHA-512')}")
+        # Check if the specified [path] is the path to the database file.
+        # If so, then the program works in the mode of checking existing files for compliance with the database.
+        if os.path.basename(path).startswith("checksums_list_for_"):
+            verification_sha(path)
+        else:
+            file_sha(path,fname)
+
+    elif os.path.isdir(path):
+        # calculating checksums in the specified folder
+        folder_sha(path,fname)
     else:
         print("Entered path does not exist.")
-    exit()
-
-# getting values
-files, files_size, files_number, old_summaries_len = filelist(path)
-
-if files_number == 0:
-    print("NO files in this folder. There is nothing to do...")
-    exit()
-
-print(f"""{50*'-'}
-{files_number} files with a total size of {converting_bytes(files_size)} were found.
-
-The program will calculate SHA-1/256/512 checksums for all of them.
-A list of files with their checksums will be saved and can be used to check the data integrity.
-
-SHA-1 is chosen by default due to its superior computational speed.
-SHA-256 and SHA-512 are more reliable, but their computation is slower.
-{50*'*'}
-If you choose to use SHA-1 press 'Enter'\nTo use SHA-256 enter [2]\nTo use SHA-512 enter [3]
-{25*'*'}""")
-
-shatype = input("Your choise is: ")
-print(50*"-")
-
-# to optimize disk usage, first write the database to ram
-database_ram = list()
-
-path = os.path.join(path,'')
-
-if shatype == '3':
-    shatype = 'SHA-512'
-elif shatype == '2':
-    shatype = 'SHA-256'
-else:
-    shatype = 'SHA-1'
-
-for current_file in files:
-    displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
-    print(f"Calculating {shatype} for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
-    sha_sum = sha_calc(current_file, shatype)
-    print(sha_sum + '\n')
-    database_ram += [displayed_filename + '\n' + sha_sum + '\n\n']
-
-database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
-database = open(path + database_filename, "w", encoding="utf-8")
-database.write(f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: {folder_name}\nThe list of files and {shatype} checksums are listed below:\n{56*'-'}\n\n")
-
-# writing database to the file
-for li in database_ram:
-    database.write(li.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
-
-database.close
-
-if old_summaries_len > 0:
-    print(30*"-")
-    if old_summaries_len == 1:
-        print(f"One old [checksums_list_for... .txt] file was found in the root of '{folder_name}' folder. It was excluded from the results.")
-    else:
-        print(f"{old_summaries_len} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
-
-print(30*"-")
-print(f"{shatype} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.\nSummary is here: {database_filename}")
+        exit()
