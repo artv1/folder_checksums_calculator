@@ -238,7 +238,7 @@ if __name__ == '__main__':
     if os.path.isfile(path):
         # Check if the specified [path] is the path to the database file.
         # If so, then the program works in the mode of checking existing files for compliance with the database.
-        if os.path.basename(path).startswith("checksums_list_for_"):
+        if fname.startswith("checksums_list_for_"):
             verification_sha(path)
         else:
             file_sha(path,fname)
