@@ -39,8 +39,9 @@ def converting_bytes(bytes):
 
     return f"{str(round(converted,1))} {xB} ({'{:,}'.format(bytes)} bytes)"
 
+# list of all files
 def filelist(thepath):
-    # list of all files in all subfolders
+    
     flist = list()
     for (dirpath, dirnames, filenames) in os.walk(thepath):
         flist += [os.path.join(dirpath, file) for file in filenames]
@@ -56,7 +57,12 @@ def filelist(thepath):
 
     return flist, fsize, len(flist), len(old_summaries)
 
-def folder_sha(path, folder_name):
+# calculate SHA for all files in folder
+def folder_sha(path):
+
+    path = os.path.abspath(path)
+    folder_name = os.path.basename(path)
+
     # getting values
     files, files_size, files_number, old_summaries_len = filelist(path)
 
@@ -113,8 +119,9 @@ def folder_sha(path, folder_name):
     print(30*"-")
     print(f"{shatype} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.\nSummary is here: {database_filename}")
 
-def file_sha(path, file_name):
-    print(f"{40*'-'}\n'{file_name}' is a file, NOT a folder!\nCalculating checksums for it.\n")
+# calculate SHA for a single file
+def file_sha(path):
+    print(f"{40*'-'}\n'{os.path.basename(path)}' is a file, NOT a folder!\nCalculating checksums for it.\n")
     print(f"SHA-1:   {sha_calc(path, 'SHA-1')}\nSHA-256: {sha_calc(path, 'SHA-256')}\nSHA-512: {sha_calc(path, 'SHA-512')}")
 
 def verification_sha(path):
@@ -183,30 +190,36 @@ def verification_sha(path):
     {len(lost_files)} file(s) from the list not found in the folder
     {len(new_files)} new file(s) were found in the folder\n""")
 
-    if len(bad_files) > 0:
-        inp_ch = input("To display a list of files that FAILED verification, type '1': ")
+    if len(bad_files) > 0 or len(lost_files) > 0 or len(new_files) > 0:
+        print("The contents of the folder are DIFFERENT from the database.")
+        inp_ch = input("To recalculate it type '1': ")
         if inp_ch == '1':
-            print (f"Checksums do not match for these files:\n{40*'-'}")
-            for f in bad_files:
-                print(f)
-            print(40*'-')
+            folder_sha(check_dir)
+        else:
+            if len(bad_files) > 0:
+                inp_ch = input("To display a list of files that FAILED verification, type '1': ")
+                if inp_ch == '1':
+                    print (f"Checksums do not match for these files:\n{40*'-'}")
+                    for f in bad_files:
+                        print(f)
+                    print(40*'-')
 
-    if len(lost_files) > 0:
-        inp_ch = input("To display a list of lost or REMOVED files, type '1': ")
-        if inp_ch == '1':
-            print (f"Files that are in the database but not in the folder:\n{40*'-'}")
-            for f in lost_files:
-                print(f)
-            print(40*'-')
+            if len(lost_files) > 0:
+                inp_ch = input("To display a list of lost or REMOVED files, type '1': ")
+                if inp_ch == '1':
+                    print (f"Files that are in the database but not in the folder:\n{40*'-'}")
+                    for f in lost_files:
+                        print(f)
+                    print(40*'-')
 
-    if len(new_files) > 0:
-        inp_ch = input("To display a list of NEW files, type '1': ")
-        if inp_ch == '1':
-            print (f"Files that are present in the folder but not in the database:\n{40*'-'}")
-            for f in new_files:
-                print(f)
-            print(40*'-')
-    exit()
+            if len(new_files) > 0:
+                inp_ch = input("To display a list of NEW files, type '1': ")
+                if inp_ch == '1':
+                    print (f"Files that are present in the folder but not in the database:\n{40*'-'}")
+                    for f in new_files:
+                        print(f)
+                    print(40*'-')
+            exit()
 
 def path_input():
     #terminal argument input
@@ -229,23 +242,23 @@ def path_input():
     if path == '':
         path = os.path.abspath(os.getcwd())
     
-    return path, os.path.basename(path) # full path and only the folder or file name
+    return path
 
 if __name__ == '__main__':
     
-    path,fname = path_input()
+    path = path_input()
     
     if os.path.isfile(path):
         # Check if the specified [path] is the path to the database file.
         # If so, then the program works in the mode of checking existing files for compliance with the database.
-        if fname.startswith("checksums_list_for_"):
+        if os.path.basename(path).startswith("checksums_list_for_"):
             verification_sha(path)
         else:
-            file_sha(path,fname)
+            file_sha(path)
 
     elif os.path.isdir(path):
         # calculating checksums in the specified folder
-        folder_sha(path,fname)
+        folder_sha(path)
     else:
         print("Entered path does not exist.")
         exit()
