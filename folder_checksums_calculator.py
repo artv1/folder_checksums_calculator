@@ -100,14 +100,10 @@ def folder_sha(path):
         database_ram += [displayed_filename + '\n' + sha_sum + '\n\n']
 
     database_filename = "checksums_list_for" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
-    database = open(path + database_filename, "w", encoding="utf-8")
-    database.write(f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: {folder_name}\nThe list of files and {shatype} checksums are listed below:\n{56*'-'}\n\n")
+    database_header = [f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: {folder_name}\n",
+                       f"The list of files and {shatype} checksums are listed below:\n{56*'-'}\n\n"]
 
-    # writing database to the file
-    for li in database_ram:
-        database.write(li.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
-
-    database.close
+    outcome = write_summary(path, database_filename, database_header+database_ram)
 
     if old_summaries_len > 0:
         print(30*"-")
@@ -117,13 +113,32 @@ def folder_sha(path):
             print(f"{old_summaries_len} old [checksums_list_for... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
 
     print(30*"-")
-    print(f"{shatype} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.\nSummary is here: {database_filename}")
+    print(f"{shatype} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.")
+    if outcome:
+        print(f"Summary is here: {database_filename}")
+    else:
+        print("But, the summary is NOT saved!")
 
 # calculate SHA for a single file
 def file_sha(path):
-    print(f"{40*'-'}\n'{os.path.basename(path)}' is a file, NOT a folder!\nCalculating checksums for it.\n")
-    print(f"SHA-1:   {sha_calc(path, 'SHA-1')}\nSHA-256: {sha_calc(path, 'SHA-256')}\nSHA-512: {sha_calc(path, 'SHA-512')}")
+    print(f"{40*'-'}\n'{os.path.basename(path)}' is a file.\nIts size is {converting_bytes(os.path.getsize(path))}\nCalculating checksums for it.\n")
 
+    sha1 = sha_calc(path, 'SHA-1')
+    sha256 = sha_calc(path, 'SHA-256')
+    sha512 = sha_calc(path, 'SHA-512')
+
+    summary = [f"SHA-1:   {sha1}\n",f"SHA-256: {sha256}\n",f"SHA-512: {sha512}\n"]
+
+    for i in summary:
+        print(i.replace('\n',''))
+
+    if input("\nTo SAVE summary to a file, type '1': ") == '1':
+        summary = [os.path.basename(path)+'\n'+converting_bytes(os.path.getsize(path))+'\n\n'] + summary
+        summary_filename = "checksums_for_"+os.path.basename(path)+datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
+        if write_summary(os.path.dirname(path), summary_filename, summary):
+            print("Saved Successfully")
+        
+# checking the existing database
 def verification_sha(path):
     print (f"{50*'-'}\nYou've selected a DATABASE file: {os.path.basename(path)}\nLet's begin verification\n{50*'-'}\n")
 
@@ -221,44 +236,60 @@ def verification_sha(path):
                     print(40*'-')
             exit()
 
+# writing database (or summary) to the file
+def write_summary(folder_path, filename, content_list):
+
+    while True:
+        folder_path = os.path.abspath(folder_path)
+        try:
+            with open (os.path.join(folder_path,'') + filename, "w", encoding="utf-8") as summary:
+                for i in content_list:
+                    summary.write(i.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
+            outcome = True
+            break
+
+        except:
+            print(f"{40*'*'}\nThe summary-database file cannot be saved in the folder: '{folder_path}'\nEnter a path to another folder, or leave the field blank to skip saving the file.")
+            folder_path = input('Input another path: ')
+            if folder_path == '':
+                outcome = False
+                break
+    
+    return outcome
+
 def path_input():
     #terminal argument input
     if len(sys.argv) > 1:
-        # if argument contains spaces, use all arguments to build path
-        joint_path = " ".join(sys.argv[1:])
-
-        # if the argument is a path to a folder or file, use it
-        if os.path.isdir(joint_path) or os.path.isfile (joint_path):
-            path = joint_path
-        else:
-            print (f"Path '{joint_path}' not found.")
-            exit()
+        path = " ".join(sys.argv[1:]) # if argument contains spaces, use all arguments to build path
+    # if no argument detected
     else:
-        # if no argument detected
-        path = input("Enter path: ") # getting the path to the working folder
+        path = input("Enter path: ")
 
-    path = os.path.abspath(path)
-
-    if path == '':
-        path = os.path.abspath(os.getcwd())
+    while True:
+        if path == '':
+            path = os.getcwd()
+            print(f"Current folder selected: '{path}'")
+        if os.path.exists(os.path.abspath(path)):
+            break
+        else:
+            path = input("Not found! Enter another path: ") # getting the path to the working folder
     
-    return path
+    return os.path.abspath(path)
 
 if __name__ == '__main__':
     
-    path = path_input()
-    
-    if os.path.isfile(path):
-        # Check if the specified [path] is the path to the database file.
-        # If so, then the program works in the mode of checking existing files for compliance with the database.
-        if os.path.basename(path).startswith("checksums_list_for_"):
-            verification_sha(path)
-        else:
-            file_sha(path)
+        path = path_input()
+        
+        if os.path.isfile(path):
+            # Check if the specified [path] is the path to the database file.
+            # If so, then the program works in the mode of checking existing files for compliance with the database.
+            if os.path.basename(path).startswith("checksums_list_for_"):
+                verification_sha(path)
+            else:
+                file_sha(path)
 
-    elif os.path.isdir(path):
-        # calculating checksums in the specified folder
-        folder_sha(path)
-    else:
-        print("Entered path does not exist.")
-        exit()
+        elif os.path.isdir(path):
+            # calculating checksums in the specified folder
+            folder_sha(path)
+        else:
+            print("Path error")
