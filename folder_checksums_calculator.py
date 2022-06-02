@@ -14,10 +14,13 @@ def sha_calc(filename, sha_type):
     else:
         return 'Wrong SHA type'
 
-    with open(filename, "rb") as f:
-        while chunk := f.read(65536):
-            hash.update(chunk)
-    return hash.hexdigest()
+    try:
+        with open(filename, "rb") as f:
+            while chunk := f.read(65536):
+                hash.update(chunk)
+        return hash.hexdigest()
+    except:
+        return 'File read error'
 
 # converting bytes to readable form
 def converting_bytes(bytes):
