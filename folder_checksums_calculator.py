@@ -122,7 +122,13 @@ def folder_sha(path):
             print(f"{old_summaries_len} old [checksums_... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
 
     print(30*"-")
-    print(f"{shatype} calculated for {files_number} files with a total size of {converting_bytes(files_size)}.")
+    print(f"Processed {files_number} files with a total size of {converting_bytes(files_size)}.")
+    
+    if read_error_count == 0:
+        print(f"{shatype} calculated successfully for all files")
+    else:
+        print(f"{shatype} calculated for {files_number-read_error_count} files")
+    
     if outcome:
         print(f"Summary is here: {database_filename}")
     else:
@@ -174,7 +180,7 @@ def verification_list(path):
 
     files_inlist_number = int(len(clear_list)/2)
 
-    print(f"{50*'-'}\nYou have selected a database file with a list of {files_inlist_number} files\nLet's begin verification\n{50*'-'}\n")
+    print(f"{60*'-'}\nYou have selected a database file with a list of {files_inlist_number} files\nLet's begin verification\n{60*'-'}\n")
     
     full_path_used = False
     # check if the database stores full paths instead of relative ones
