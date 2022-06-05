@@ -163,7 +163,7 @@ def verification_list(path):
 
     files_inlist_number = int(len(clear_list)/2)
 
-    print(f"{50*'-'}\nYou have selected a database file that contains a list of {files_inlist_number} files\nin the folder: {check_dir}\nLet's begin verification\n{50*'-'}\n")
+    print(f"{50*'-'}\nYou have selected a database file with a list of {files_inlist_number} files\nLet's begin verification\n{50*'-'}\n")
     
     full_path_used = False
     # check if the database stores full paths instead of relative ones
