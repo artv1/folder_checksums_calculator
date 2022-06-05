@@ -74,8 +74,7 @@ def folder_sha(path):
     files, files_size, files_number, old_summaries_len = filelist(path)
 
     if files_number == 0:
-        print("NO files in this folder. There is nothing to do...")
-        exit()
+        return "NO files in this folder. There is nothing to do..."
 
     print(f"{50*'-'}\n{files_number} files with a total size of {converting_bytes(files_size)} were found.\n\n"
             "The program will calculate SHA-1/256/512 checksums for all of them.\n"
@@ -96,6 +95,7 @@ def folder_sha(path):
     
     # to optimize disk usage, first write the database to ram
     database_ram = list()
+    read_error_count = 0
 
     path = os.path.join(path,'')
 
@@ -103,6 +103,8 @@ def folder_sha(path):
         displayed_filename = current_file.replace(path, '') #so that not the entire path to the file is stored in the database, but relative to the specified directory
         print(f"Calculating {shatype} for {files.index(current_file)+1} of {files_number} files: {displayed_filename}")
         sha_sum = sha_calc(current_file, shatype)
+        if sha_sum == 'File read error':
+            read_error_count += 1
         print(sha_sum + '\n')
         database_ram += [current_file + '\n' + sha_sum + '\n\n']
 
@@ -126,11 +128,18 @@ def folder_sha(path):
     else:
         print("But, the summary is NOT saved!")
 
+    if read_error_count > 0:
+        return f"{read_error_count} read errors occured!"
+    else:
+        return "Done"
+
 # calculate SHA for a single file
 def file_sha(path):
     print(f"{40*'-'}\n'{os.path.basename(path)}' is a file.\nIts size is {converting_bytes(os.path.getsize(path))}\nCalculating checksums for it.\n")
 
     sha1 = sha_calc(path, 'SHA-1')
+    if sha1 == "File read error":
+        return "File read error. Unable to calculate checksum"
     sha256 = sha_calc(path, 'SHA-256')
     sha512 = sha_calc(path, 'SHA-512')
 
@@ -144,6 +153,8 @@ def file_sha(path):
         summary_filename = "checksums_forfile_"+os.path.basename(path)+'_'+datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
         if write_summary(os.path.dirname(path), summary_filename, summary, path):
             print("Saved Successfully")
+    
+    return "Done"
         
 # checking the existing database
 def verification_list(path):
@@ -381,20 +392,24 @@ def path_input():
 
 if __name__ == '__main__':
     
-        path = path_input()
+    path = path_input()
+    resume = ''
         
-        if os.path.isfile(path):
-            # Check if the specified [path] is the path to the database file.
-            # If so, then the program works in the mode of checking existing files for compliance with the database.
-            if os.path.basename(path).startswith("checksums_list"):
-                print(verification_list(path))
-            elif os.path.basename(path).startswith("checksums_forfile"):
-                print(verification_file(path))
-            else:
-                file_sha(path)
-
-        elif os.path.isdir(path):
-            # calculating checksums in the specified folder
-            folder_sha(path)
+    if os.path.isfile(path):
+        # Check if the specified [path] is the path to the database file.
+        # If so, then the program works in the mode of checking existing files for compliance with the database.
+        if os.path.basename(path).startswith("checksums_list"):
+            resume = verification_list(path)
+        elif os.path.basename(path).startswith("checksums_forfile"):
+            resume = verification_file(path)
         else:
-            print("Path error")
+            resume = file_sha(path)
+
+    elif os.path.isdir(path):
+        # calculating checksums in the specified folder
+        resume = folder_sha(path)
+    else:
+        resume = "Path error"
+
+    if resume != "Done" and resume != '':
+        print(resume)
