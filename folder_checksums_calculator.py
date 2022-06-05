@@ -44,21 +44,25 @@ def converting_bytes(bytes):
 
 # list of all files
 def filelist(thepath):
-    
-    flist = list()
-    for (dirpath, dirnames, filenames) in os.walk(thepath):
-        flist += [os.path.join(dirpath, file) for file in filenames]
+    try:
+        flist = list()
+        for (dirpath, dirnames, filenames) in os.walk(thepath):
+            flist += [os.path.join(dirpath, file) for file in filenames]
 
-    # filtering out old database's files (checksums_listfor_... .txt) if they are in the current folder
-    old_summaries = [filename for filename in os.listdir(thepath) if filename.startswith("checksums_")]
-    flist = [x for x in flist if os.path.basename(x) not in old_summaries] # list of all files without old checksums_listfor_... .txt files
+        # filtering out old database's files (checksums_listfor_... .txt) if they are in the current folder
+        old_summaries = [filename for filename in os.listdir(thepath) if filename.startswith("checksums_")]
+        flist = [x for x in flist if os.path.basename(x) not in old_summaries] # list of all files without old checksums_listfor_... .txt files
 
-    # get size of all files in current folder
-    fsize = 0
-    for fs in flist:
-        fsize += os.path.getsize(fs)
+        # get size of all files in current folder
+        fsize = 0
+        for fs in flist:
+            fsize += os.path.getsize(fs)
 
-    return flist, fsize, len(flist), len(old_summaries)
+        return flist, fsize, len(flist), len(old_summaries)
+
+    except:
+        print("Error getting list of files. The folder is not accessible")
+        exit()
 
 # calculate SHA for all files in folder
 def folder_sha(path):
@@ -142,48 +146,24 @@ def file_sha(path):
             print("Saved Successfully")
         
 # checking the existing database
-def verification_sha(path):
-    print (f"{50*'-'}\nYou've selected a DATABASE file: {os.path.basename(path)}\nLet's begin verification\n{50*'-'}\n")
-
-    # path to the parent folder of the database file
-    check_dir = os.path.join(os.path.dirname(path),'')
-
+def verification_list(path):
     # now 'path' is path to database file, so open it
     try:
         with open(path, encoding="utf-8") as dfile:
             d_content = dfile.readlines()
             raw_data = d_content[4:]
     except:
-        print("Database file is not readable")
-        exit()
+        return "Database file is not readable"
 
-    # verification SHA-256 for a single file Summary
-    if os.path.basename(path).startswith("checksums_forfile"):
-        # extracting filename from summary
-        filename = d_content[0].replace("\n","")
-        if not os.path.isfile(check_dir+filename):
-            check_dir=''
-        if os.path.isfile(check_dir+filename):
-            for i in d_content:
-                if i.startswith('SHA-256: '):
-                    # extracting old checksum from summary
-                    oldsha = i.replace("\n","").replace('SHA-256: ','')
-                    if len(oldsha) == 64:
-                        shatype = 'SHA-256'
-                        newsha = sha_calc(check_dir+filename, shatype)
-                        if newsha == oldsha:
-                            print(f"{filename}: file checked, checksum MATCHED\n{shatype}: {newsha}\n")
-                        else:
-                            print(f"File: {filename} was changed or CORRUPTED!!!\nCalculated {shatype}:\n{newsha}\n")
-                            print(f"Stored in Summary {shatype}:\n{oldsha}\n")
-                            if input(f"{40*'*'}\nTo calculate the actual checksums and generate a new summary, type '1': ") == '1':
-                                file_sha(check_dir+filename)
-            exit()
-    elif not os.path.basename(path).startswith("checksums_list"):
-        exit()
-
+    # path to the parent folder of the database file
+    check_dir = os.path.join(os.path.dirname(path),'')
+    
     new_list = [s.replace("\n", "") for s in raw_data]
     clear_list = list(filter(None, new_list)) # list of files and hashsums only
+
+    files_inlist_number = int(len(clear_list)/2)
+
+    print(f"{50*'-'}\nYou have selected a database file that contains a list of {files_inlist_number} files\nin the folder: {check_dir}\nLet's begin verification\n{50*'-'}\n")
     
     full_path_used = False
     # check if the database stores full paths instead of relative ones
@@ -205,8 +185,6 @@ def verification_sha(path):
             full_path_used = False
             break
 
-    files_inlist_number = int(len(clear_list)/2)
-
     good_files = list() # files that have been verified against database
     bad_files = list() # files that have NOT been verified against database
     lost_files = list() # files that are in the list but not in the folder
@@ -222,19 +200,24 @@ def verification_sha(path):
                 shatype = 'SHA-256'
             elif len(old_sha) == 128:
                 shatype = 'SHA-512'
+            elif old_sha == 'File read error':
+                print(f"Skip the file: {cheking_file}\n")
+                bad_files += [cheking_file]
+                continue
             else:
-                print("Database error!")
-                exit()
+                print(f"Database error! {cheking_file}\n")
+                bad_files += [cheking_file]
+                continue
 
-            print(f"Calculating {shatype} for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files in the list")
+            print(f"Calculating {shatype} for {int(clear_list.index(cheking_file)/2+1)} of {files_inlist_number} files: {cheking_file}")
             ch_sum = sha_calc(check_dir + cheking_file, shatype)
 
             if old_sha == ch_sum:
                 good_files += [cheking_file]
-                print(f"{cheking_file}: file checked, checksum matched\n{shatype}: {ch_sum}\n")
+                print(f"File checked, checksum matched\n{shatype}: {ch_sum}\n")
             else:
                 bad_files += [cheking_file]
-                print(f"File: {cheking_file} was changed or CORRUPTED!!!\nCalculated {shatype}: {ch_sum}\nbut the database for this file stores {shatype}:\n{old_sha}\n")
+                print(f"File was changed or CORRUPTED!!!\nCalculated {shatype}: {ch_sum}\nbut the database for this file stores {shatype}:\n{old_sha}\n")
             
         else:
             lost_files += [cheking_file]
@@ -270,34 +253,72 @@ def verification_sha(path):
 
     if len_bad_files > 0 or len_lost_files > 0 or len_new_files > 0:
         print("The contents of the folder are DIFFERENT from the database.")
-        inp_ch = input("To recalculate it type '1': ")
-        if inp_ch == '1':
+        if input("To recalculate it type '1': ") == '1':
             folder_sha(check_dir)
         else:
             if len_bad_files > 0:
-                inp_ch = input("To display a list of files that FAILED verification, type '1': ")
-                if inp_ch == '1':
+                if input("To display a list of files that FAILED verification, type '1': ") == '1':
                     print (f"Checksums do not match for these files:\n{40*'-'}")
                     for f in bad_files:
                         print(f)
                     print(40*'-')
 
             if len_lost_files > 0:
-                inp_ch = input("To display a list of lost or REMOVED files, type '1': ")
-                if inp_ch == '1':
+                if input("To display a list of lost or REMOVED files, type '1': ") == '1':
                     print (f"Files that are in the database but not in the folder:\n{40*'-'}")
                     for f in lost_files:
                         print(f)
                     print(40*'-')
 
             if len_new_files > 0:
-                inp_ch = input("To display a list of NEW files, type '1': ")
-                if inp_ch == '1':
+                if input("To display a list of NEW files, type '1': ") == '1':
                     print (f"Files that are present in the folder but not in the database:\n{40*'-'}")
                     for f in new_files:
                         print(f)
                     print(40*'-')
-            exit()
+    return "Done"
+
+# verification SHA-256 for a single file Summary
+def verification_file(path):
+    # now 'path' is path to summary file, so open it
+    try:
+        with open(path, encoding="utf-8") as dfile:
+            sum_content = dfile.readlines()
+    except:
+        return "Summary file is not readable"
+
+    # extracting filename from summary
+    filename = sum_content[0].replace("\n","")
+    
+    # path to the parent folder of the summary file
+    check_dir = os.path.join(os.path.dirname(path),'')
+
+    if not os.path.isfile(check_dir+filename):
+        check_dir=''
+    if os.path.isfile(check_dir+filename):
+        print (f"{50*'-'}\nSelected Summary for file: {filename}")
+        for i in sum_content:
+            if i.startswith('SHA-256: '):
+                # extracting old checksum from summary
+                oldsha = i.replace("\n","").replace('SHA-256: ','')
+                if len(oldsha) == 64:
+                    print(f"Contains a stored checksum entry:\n{i}\nLet's begin verification\n{50*'-'}\n")
+                    shatype = 'SHA-256'
+                    newsha = sha_calc(check_dir+filename, shatype)
+                    if newsha == 'File read error':
+                        return newsha
+                    if newsha == oldsha:
+                        print(f"{filename}: file checked, checksum MATCHED\n{shatype}: {newsha}\n")
+                    else:
+                        print(f"File: {filename} was changed or CORRUPTED!!!\nCalculated {shatype}:\n{newsha}\n")
+                        print(f"Stored in Summary {shatype}:\n{oldsha}\n")
+                        if input(f"{40*'*'}\nTo calculate the actual checksums and generate a new summary, type '1': ") == '1':
+                            file_sha(check_dir+filename)
+                else:
+                    print("Does not contain a stored SHA-256 checksum entry\n")
+        return "Done"
+    else:
+        return "Wrong summary file"
 
 # writing database (or summary) to the file
 def write_summary(folder_path, filename, content_list, full_path):
@@ -365,8 +386,10 @@ if __name__ == '__main__':
         if os.path.isfile(path):
             # Check if the specified [path] is the path to the database file.
             # If so, then the program works in the mode of checking existing files for compliance with the database.
-            if os.path.basename(path).startswith("checksums_"):
-                verification_sha(path)
+            if os.path.basename(path).startswith("checksums_list"):
+                print(verification_list(path))
+            elif os.path.basename(path).startswith("checksums_forfile"):
+                print(verification_file(path))
             else:
                 file_sha(path)
 
