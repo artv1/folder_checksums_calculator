@@ -273,7 +273,7 @@ def verification_list(path):
 
     if len_bad_files > 0 or len_lost_files > 0 or len_new_files > 0:
         print("The contents of the folder are DIFFERENT from the database.")
-        if input("To recalculate it type '1': ") == '1':
+        if input("To recalculate it, type '1': ") == '1':
             folder_sha(check_dir)
         else:
             if len_bad_files > 0:
@@ -338,7 +338,7 @@ def verification_file(path):
                     print("Does not contain a stored SHA-256 checksum entry\n")
         return "Done"
     else:
-        return "Wrong summary file"
+        return "File specified in the summary does not exist"
 
 # writing database (or summary) to the file
 def write_summary(folder_path, filename, content_list, full_path):
@@ -371,10 +371,15 @@ def write_summary(folder_path, filename, content_list, full_path):
 
         except:
             print(f"{40*'*'}\nThe summary-database file cannot be saved in the folder: '{folder_path}'\nEnter a path to another folder, or leave the field blank to skip saving the file.")
-            folder_path = input('Input another path: ')
-            short_path = False
-            if folder_path == '':
-                return False
+            while True:
+                folder_path = input('Input another path: ')
+                if folder_path == '':
+                    return False
+                elif os.path.isdir(folder_path):
+                    short_path = False
+                    break
+                else:
+                    print("Folder does not exist")
 
 def delete_files(filelist):
     print(25*'#*')
@@ -386,7 +391,7 @@ def delete_files(filelist):
         else:
             print("Filelist error: Wrong path to file")
             return False
-    if input(f"{25*'*#'}\n{len(filelist)} file(s) listed above with a total size of {converting_bytes(fsize)} will be DELETED from the disk.\nTo confirm deletion type '1': ") == '1':
+    if input(f"{25*'*#'}\n{len(filelist)} file(s) listed above with a total size of {converting_bytes(fsize)} will be DELETED from the disk.\nTo confirm deletion, type '1': ") == '1':
         try:
             for i in filelist:
                 os.remove(i)
