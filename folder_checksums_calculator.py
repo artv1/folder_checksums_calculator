@@ -49,16 +49,16 @@ def filelist(thepath):
         for (dirpath, dirnames, filenames) in os.walk(thepath):
             flist += [os.path.join(dirpath, file) for file in filenames]
 
-        # filtering out old database's files (checksums_listfor_... .txt) if they are in the current folder
-        old_summaries = [filename for filename in os.listdir(thepath) if filename.startswith("checksums_")]
-        flist = [x for x in flist if os.path.basename(x) not in old_summaries] # list of all files without old checksums_listfor_... .txt files
+        # filtering out old database's files (checksums_... .txt) if they are in the root of current folder
+        old_summaries = [os.path.join(thepath,filename) for filename in os.listdir(thepath) if filename.startswith("checksums_") and os.path.isfile(os.path.join(thepath,filename))]
+        flist = [x for x in flist if x not in old_summaries] # list of all files without old checksums_listfor_... .txt files
 
         # get size of all files in current folder
         fsize = 0
         for fs in flist:
             fsize += os.path.getsize(fs)
 
-        return flist, fsize, len(flist), len(old_summaries)
+        return flist, fsize, len(flist), old_summaries, len(old_summaries)
 
     except:
         print("Error getting list of files. The folder is not accessible")
@@ -71,7 +71,7 @@ def folder_sha(path):
     folder_name = os.path.basename(path)
 
     # getting values
-    files, files_size, files_number, old_summaries_len = filelist(path)
+    files, files_size, files_number, old_summaries, old_summaries_len = filelist(path)
 
     if files_number == 0:
         return "NO files in this folder. There is nothing to do..."
@@ -112,27 +112,30 @@ def folder_sha(path):
     database_header = [f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: ", f"{folder_name}\n",
                        f"The list of files and {shatype} checksums are listed below:\n{56*'-'}\n\n"]
 
-    outcome = write_summary(path, database_filename, database_header+database_ram, path)
-
-    if old_summaries_len > 0:
-        print(30*"-")
-        if old_summaries_len == 1:
-            print(f"One old [checksums_... .txt] file was found in the root of '{folder_name}' folder. It was excluded from the results.")
-        else:
-            print(f"{old_summaries_len} old [checksums_... .txt] files were found in the root of '{folder_name}' folder. They were excluded from the results.")
-
-    print(30*"-")
-    print(f"Processed {files_number} files with a total size of {converting_bytes(files_size)}.")
+    print(f"{40*'-'}\nProcessed {files_number} files with a total size of {converting_bytes(files_size)}.")
     
     if read_error_count == 0:
         print(f"{shatype} calculated successfully for all files")
     else:
         print(f"{shatype} calculated for {files_number-read_error_count} files")
     
-    if outcome:
+    if write_summary(path, database_filename, database_header+database_ram, path):
         print(f"Summary is here: {database_filename}")
     else:
-        print("But, the summary is NOT saved!")
+        print("!!! the summary is NOT saved !!!")
+
+    if old_summaries_len > 0:
+        print(40*'*')
+        if old_summaries_len == 1:
+            print(f"One old [checksums_... .txt] file was found in the root of '{folder_name}' folder.\nIt was excluded from the results.")
+            if input("\n***\nTo DELETE this OLD database, type '1': ") == '1':
+                if delete_files(old_summaries):
+                    print('OLD summary deleted successfully')
+        else:
+            print(f"{old_summaries_len} old [checksums_... .txt] files were found in the root of '{folder_name}' folder.\nThey were excluded from the results.")
+            if input("\n***\nTo DELETE these OLD databases, type '1': ") == '1':
+                if delete_files(old_summaries):
+                    print('All OLD summaries deleted successfully')
 
     if read_error_count > 0:
         return f"{read_error_count} read errors occured!"
@@ -241,7 +244,7 @@ def verification_list(path):
 
     if full_path_used:
         check_dir = check_dir_fullpath
-        print(check_dir)
+        print(f"Working folder: {check_dir}")
 
     # getting a list of files in the current folder
     files = filelist(check_dir)[0]
@@ -364,19 +367,36 @@ def write_summary(folder_path, filename, content_list, full_path):
             with open (path + filename, "w", encoding="utf-8") as summary:
                 for i in file_content:
                     summary.write(i.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
-            outcome = True
-            break
+            return True
 
         except:
             print(f"{40*'*'}\nThe summary-database file cannot be saved in the folder: '{folder_path}'\nEnter a path to another folder, or leave the field blank to skip saving the file.")
             folder_path = input('Input another path: ')
             short_path = False
             if folder_path == '':
-                outcome = False
-                break
-    
-    return outcome
+                return False
 
+def delete_files(filelist):
+    print(25*'#*')
+    fsize = 0
+    for i in filelist:
+        if os.path.isfile(i):
+            print(os.path.basename(i))
+            fsize += os.path.getsize(i)
+        else:
+            print("Filelist error: Wrong path to file")
+            return False
+    if input(f"{25*'*#'}\n{len(filelist)} file(s) listed above with a total size of {converting_bytes(fsize)} will be DELETED from the disk.\nTo confirm deletion type '1': ") == '1':
+        try:
+            for i in filelist:
+                os.remove(i)
+            return True
+        except:
+            print('An error occurred while deleting file(s)\nNo access to file or permissions not granted')
+            return False
+    else:
+        return False
+    
 def path_input():
     #terminal argument input
     if len(sys.argv) > 1:
