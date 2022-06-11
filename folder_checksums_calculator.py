@@ -108,14 +108,14 @@ def folder_sha(path):
         print(sha_sum + '\n')
         database_ram += [current_file + '\n' + sha_sum + '\n\n']
 
-    database_filename = "checksums_listfor" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
-    database_header = [f"Checksums calculated for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: ", f"{folder_name}\n",
-                       f"The list of files and {shatype} checksums are listed below:\n{56*'-'}\n\n"]
+    database_filename = "checksums_listfor" + '_' + folder_name + "_" + datetime.now().strftime("%Y%m%d_%H%M")+".txt"
+    database_header = [f"Checksums list for {files_number} files with a total size of {converting_bytes(files_size)} in the folder: ", f"{folder_name}\n",
+                       f"File paths and their {shatype} checksums are listed below:\n{56*'-'}\n\n"]
 
     print(f"{40*'-'}\nProcessed {files_number} files with a total size of {converting_bytes(files_size)}.")
     
     if read_error_count == 0:
-        print(f"{shatype} calculated successfully for all files")
+        print(f"{shatype} calculated successfully for ALL files")
     else:
         print(f"{shatype} calculated for {files_number-read_error_count} files")
     
@@ -159,7 +159,7 @@ def file_sha(path):
 
     if input("\nTo SAVE summary to a file, type '1': ") == '1':
         summary = [f"{os.path.basename(path)}\n", f"{converting_bytes(os.path.getsize(path))}\n\n"] + summary
-        summary_filename = "checksums_forfile_"+os.path.basename(path)+'_'+datetime.now().strftime("%Y%m%d_%H_%M")+".txt"
+        summary_filename = "checksums_forfile_"+os.path.basename(path)+'_'+datetime.now().strftime("%Y%m%d_%H%M")+".txt"
         if write_summary(os.path.dirname(path), summary_filename, summary, path):
             print("Saved Successfully")
     
