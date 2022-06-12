@@ -256,7 +256,7 @@ def verification_list(path):
         files_relative_path = [cf.replace(check_dir, '') for cf in files]
 
     # files that are present in the folder but not in the database
-    new_files = [nf for nf in files_relative_path if nf not in good_files and nf not in bad_files]
+    new_files = [nf for nf in files_relative_path if nf.replace('\\','/') not in good_files and nf.replace('\\','/') not in bad_files]
 
     len_good_files = len(good_files)
     len_bad_files = len(bad_files)
