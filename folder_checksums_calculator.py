@@ -180,6 +180,8 @@ def verification_list(path):
     
     new_list = [s.replace("\n", "") for s in raw_data]
     clear_list = list(filter(None, new_list)) # list of files and hashsums only
+    if os.sep != '/':
+        clear_list = [i.replace('/', os.sep) for i in clear_list]
 
     files_inlist_number = int(len(clear_list)/2)
 
@@ -196,8 +198,9 @@ def verification_list(path):
             for y in firstline:
                 if y == ':':
                     x = firstline.index(y)+2
-                    if os.path.isdir(firstline[x:-1]):
-                        check_dir_fullpath = firstline[x:-1]
+                    wdir = firstline[x:-1].replace('/', os.sep)
+                    if os.path.isdir(wdir):
+                        check_dir_fullpath = wdir
                     else:
                         return 'Database error'
             break
@@ -256,7 +259,7 @@ def verification_list(path):
         files_relative_path = [cf.replace(check_dir, '') for cf in files]
 
     # files that are present in the folder but not in the database
-    new_files = [nf for nf in files_relative_path if nf.replace('\\','/') not in good_files and nf.replace('\\','/') not in bad_files]
+    new_files = [nf for nf in files_relative_path if nf not in good_files and nf not in bad_files]
 
     len_good_files = len(good_files)
     len_bad_files = len(bad_files)
@@ -365,8 +368,12 @@ def write_summary(folder_path, filename, content_list, full_path):
 
         try:
             with open (path + filename, "w", encoding="utf-8") as summary:
-                for i in file_content:
-                    summary.write(i.replace('\\','/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
+                if os.sep != '/':
+                    for i in file_content:
+                        summary.write(i.replace(os.sep,'/')) # if the script is running on Windows, bring the writed paths to the posix view ('\' --> '/')
+                else:
+                    for i in file_content:
+                        summary.write(i)
             return True
 
         except:
