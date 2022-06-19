@@ -228,7 +228,7 @@ def file_sha(file_path):
 # checking the existing database
 def verification_list(database_file_path):
     try:
-        with open(database_file_path, encoding="utf-8") as dfile:
+        with open(database_file_path) as dfile:
             stored_data = json.load(dfile)
     except:
         return "Database file is not readable"
@@ -349,7 +349,7 @@ def verification_list(database_file_path):
 def verification_file(path):
     # now 'path' is path to summary file, so open it
     try:
-        with open(path, encoding="utf-8") as dfile:
+        with open(path) as dfile:
             stored_data = json.load(dfile)
     except:
         return "Summary file is not readable"
@@ -399,9 +399,8 @@ def write_summary(folder_tosave, filename, content):
             content[0]["Working folder"] = genform(full_path)
 
         try:
-            jdata = json.dumps(content, indent = 4)
-            with open(path + filename, "w", encoding="utf-8") as summary:
-                summary.write(jdata)
+            with open(path + filename, "w") as jfile:
+                json.dump(content, jfile, indent=4)
             return True
 
         except:
