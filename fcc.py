@@ -112,9 +112,11 @@ def calc_sha_list(relative_folder,files,shatype):
     # checking files existence
     for f in files:
         if not os.path.isfile(f):
-            files.remove(f)
-            lostfiles.append(f.replace(relative_folder,''))
-
+            lostfiles.append(f)
+    
+    if len(lostfiles) > 0:
+        files = [f for f in files if f not in lostfiles]
+        
     i=0
     for current_file in files:
         i+=1
