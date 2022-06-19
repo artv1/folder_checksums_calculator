@@ -17,4 +17,11 @@ If you just run the program without any argument by: "python folder_checksums_ca
 the program will prompt you to enter the path to the folder where you want to calculate checksums for all files. In this field, you can also specify the path to the 'database' to check the integrity of the files listed in it.
 
 ---
-A simple text file containing a list of files and their checksums is used as a database. This text file can also be opened and used from outside of this application.
+Two versions of the program are presented.
+
+### fcc.py
+Recommended for most users. It uses JSON as a database and handles data changes more flexibly.
+
+---
+### folder_checksums_calculator.py
+Stores data in a simple text file. This option is very outdated and is suitable for those who need to use plain text data.
