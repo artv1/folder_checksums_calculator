@@ -1,11 +1,11 @@
 # Folder checksums calculator
-The program calculates SHA-1/256/512 checksums for all files in a specified folder, as well as its subfolders. A list of files with their checksums is stored and can be used to check the data integrity.
+The program calculates SHA-1/256/512 checksums for all files in a specified folder, as well as its subfolders.
 
 Among the features of the program:
-* calculation of checksums for all files in a folder and creation of a database for them
+* calculating checksums for all files in a folder and creating a database for them
 * checking all files from the database for integrity
 * finding changes in the working folder and the ability to update data in the database
-* calculation and verification of checksums for a single file
+* calculation, storage and verification of checksums for a single file
 
 To use this console utility, you must have Python installed on your computer. If it's done, type in terminal:
 
