@@ -106,13 +106,10 @@ def calc_sha_list(relative_folder,files,shatype):
     files_number = len(files)
     sha_data = dict() # dictionary with files for which checksums were calculated
     unreadable_files = list() # list of files with read errors or lack of access
-    lostfiles = list() # list of non-existent files
     relative_folder = genform(relative_folder)
 
-    # checking files existence
-    for f in files:
-        if not os.path.isfile(f):
-            lostfiles.append(f)
+    # checking files existence, list of non-existent files
+    lostfiles = [f for f in files if not os.path.isfile(f)]
     
     if len(lostfiles) > 0:
         files = [f for f in files if f not in lostfiles]
