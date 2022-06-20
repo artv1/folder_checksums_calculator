@@ -101,7 +101,7 @@ def filelist_size(flist):
     except:
         return 0,"Unable to get file size"
 
-# calculation SHA for list of files, returns: [Dict{files:checksums}, [List of Unreadable files...], [List of Lost files...]]
+# calculation SHA for list of files, returns: [Dict{files:checksums}, [List of Unreadable files...], lostfiles_number]
 def calc_sha_list(relative_folder,files,shatype):
     files_number = len(files)
     sha_data = dict() # dictionary with files for which checksums were calculated
@@ -138,7 +138,7 @@ def calc_sha_list(relative_folder,files,shatype):
 
     print("\rFile processing complete\033[K") # '\033[K' clearing line after the string
 
-    return sha_data, unreadable_files, lostfiles
+    return sha_data, unreadable_files, len(lostfiles)
 
 # calculate SHA for all files in folder
 def folder_sha(path):
@@ -174,7 +174,7 @@ def folder_sha(path):
 
     print(f"{shatype}")
     
-    sha_data, read_error_flist, lostfiles = calc_sha_list(path,files,shatype)
+    sha_data, read_error_flist, lostfiles_number = calc_sha_list(path,files,shatype)
 
     read_error_count = len(read_error_flist)
 
@@ -202,7 +202,7 @@ def file_sha(file_path):
     file_name = os.path.basename(file_path)
     file_size = converting_bytes(os.path.getsize(file_path))
 
-    text = [f"{file_name}' is a file.", f"Its size is {file_size}", "Calculating checksums for it."]
+    text = [f"'{file_name}' is a file.", f"Its size is {file_size}", "Calculating checksums for it."]
     decorator(text, '.')
 
     sha1 = sha_calc(file_path, 'SHA-1')
@@ -227,7 +227,7 @@ def file_sha(file_path):
 # checking the existing database
 def verification_list(database_file_path):
     try:
-        with open(database_file_path) as dfile:
+        with open(database_file_path, encoding='utf-8') as dfile:
             stored_data = json.load(dfile)
     except:
         return "Database file is not readable"
@@ -265,7 +265,7 @@ def verification_list(database_file_path):
         return "Verification canceled by user"
 
     # database stores only relative paths, so conversion required
-    stored_filelist_fullpath = tofull_path(check_dir, stored_filelist.keys())
+    stored_filelist_fullpath = tofull_path(check_dir, list(stored_filelist))
 
     # adding previously 'unreadable' filelist to overall list
     if len(stored_unreadable_filelist) > 0:
@@ -273,7 +273,7 @@ def verification_list(database_file_path):
 
     # calculating SHA for stored file list
     new_data = calc_sha_list(check_dir,stored_filelist_fullpath,shatype)
-    list_todelete = new_data[2] # files that are in the list but not in the folder
+    lostfiles_number = new_data[2] # number of files that are in the list but actually not in the folder
     upd_filelist=dict() # Dict{file:sha} with updated SHA data, files whose checksums are different from the database
 
     if new_data[0] == stored_filelist:
@@ -298,7 +298,6 @@ def verification_list(database_file_path):
 
     len_new_files = len(new_files)
     len_upd_filelist = len(upd_filelist)
-    len_list_todelete = len(list_todelete)
 
     # if contents of the folder have not changed, exit function
     if not filelist_changed and len_new_files == 0:
@@ -310,9 +309,9 @@ def verification_list(database_file_path):
         decorator(["The contents of the folder are DIFFERENT from the database."],'-')
         if len_upd_filelist > 0:
             if input(f"{len_upd_filelist} file(s) FAILED verification. To display a list of them, type '1': ") == '1':
-                decorator(upd_filelist.keys(),'.')
-        if len_list_todelete > 0:
-            print(f"{len_list_todelete} file(s) from the database not found in the folder")
+                decorator(list(upd_filelist),'.')
+        if lostfiles_number > 0:
+            print(f"{lostfiles_number} file(s) from the database not found in the folder")
         if len_new_files > 0:
             print(f"{len_new_files} new file(s) were found in the folder")
 
@@ -335,7 +334,7 @@ def verification_list(database_file_path):
                     new_data[1].extend(new_files_data[1])
 
             stored_data[0]["Files number"] = len(new_data[0])
-            stored_data[0]["Total size"] = filelist_size(tofull_path(check_dir,new_data[0]))[1]
+            stored_data[0]["Total size"] = filelist_size(tofull_path(check_dir,list(new_data[0])))[1]
 
             if write_summary(check_dir,os.path.basename(database_file_path),[stored_data[0], new_data[0], {"Unreadable files":new_data[1]}]):
                 print("Database successfully updated!")
@@ -348,7 +347,7 @@ def verification_list(database_file_path):
 def verification_file(path):
     # now 'path' is path to summary file, so open it
     try:
-        with open(path) as dfile:
+        with open(path, encoding='utf-8') as dfile:
             stored_data = json.load(dfile)
     except:
         return "Summary file is not readable"
@@ -398,8 +397,8 @@ def write_summary(folder_tosave, filename, content):
             content[0]["Working folder"] = genform(full_path)
 
         try:
-            with open(path + filename, "w") as jfile:
-                json.dump(content, jfile, indent=4)
+            with open(path + filename, "w", encoding='utf-8') as jfile:
+                json.dump(content, jfile, indent=4, ensure_ascii=False)
             return True
 
         except:
