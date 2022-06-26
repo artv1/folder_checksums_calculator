@@ -4,7 +4,7 @@ import os, hashlib, sys, json
 from datetime import datetime
 
 # sha calculating
-def sha_calc(filename, sha_type):
+def sha_calc(filename, sha_type = 'SHA-256'):
     if sha_type == 'SHA-1':
         hash = hashlib.sha1()
     elif sha_type == 'SHA-256':
@@ -45,7 +45,7 @@ def converting_bytes(bytes):
     return f"{str(round(converted,1))} {xB} ({'{:,}'.format(bytes)} bytes)"
 
 # decorative border of the first and last line
-def decorator(listof_strings, decor_symbol):
+def decorator(listof_strings, decor_symbol = '.'):
     max_len = 0
     for i in listof_strings:
         if len(i) > max_len:
@@ -58,25 +58,14 @@ def decorator(listof_strings, decor_symbol):
 # list of all files without existing database files
 def filelist_fullpath(thepath):
     try:
-        flist=list()
-        if os.sep == '/':
-            for (dirpath, dirnames, filenames) in os.walk(thepath):
-                flist += [os.path.join(dirpath, file) for file in filenames if not os.path.basename(file).startswith("shadata_")]
-        else:
-            for (dirpath, dirnames, filenames) in os.walk(thepath):
-                flist += [os.path.join(dirpath, file).replace(os.sep, '/') for file in filenames if not os.path.basename(file).startswith("shadata_")]
+        flist = [os.path.join(dirpath, file) for (dirpath, dirnames, filenames) in os.walk(thepath) for file in filenames \
+            if not os.path.basename(file).startswith("shadata_")]
+
+        if os.sep != '/':
+            flist = [f.replace(os.sep, '/') for f in flist]
+        
         return flist
-    except:
-        print("Error getting list of files. The folder is not accessible")
-        exit()
-
-# list of all files without existing database files: RELATIVE PATHS
-def filelist_relpath(path):
-    try:
-        files_relative_path = [os.path.relpath(os.path.join(dirpath, file), path).replace(os.sep,'/') for (dirpath, dirnames, filenames) \
-            in os.walk(path) for file in filenames if not os.path.basename(file).startswith("shadata_")]
-
-        return files_relative_path
+        
     except:
         print("Error getting list of files. The folder is not accessible")
         exit()
@@ -84,6 +73,11 @@ def filelist_relpath(path):
 # returns: os.path.join("folder",'').replace(os.sep,'/')
 def genform(folder):
     return os.path.join(folder,'').replace(os.sep,'/')
+
+# convert list of files with full path to list of files with relative paths
+def torel_path(path_prefix, filelist):
+    rel_filelist = [os.path.relpath(file_fullpath, path_prefix).replace(os.sep,'/') for file_fullpath in filelist]
+    return rel_filelist
 
 # convert list of files from relative path view 'folder/file' to full path /home/user/folders.../file
 def tofull_path(path_prefix, filelist):
@@ -101,18 +95,21 @@ def filelist_size(flist):
     except:
         return 0,"Unable to get file size"
 
-# calculation SHA for list of files, returns: [Dict{files:checksums}, [List of Unreadable files...], lostfiles_number]
-def calc_sha_list(relative_folder,files,shatype):
+# clearing the filelist of non-existent ones, returns [[filelist], [lost files]]
+def filelist_clear(flist):
+    lostfiles = [f for f in flist if not os.path.isfile(f)]
+    
+    if len(lostfiles) > 0:
+        flist = [f for f in flist if f not in lostfiles]
+    
+    return flist, lostfiles
+
+# calculation SHA for list of files, returns: [Dict{files:checksums}, [List of Unreadable files...]]
+def calc_sha_list(relative_folder, files ,shatype):
     files_number = len(files)
     sha_data = dict() # dictionary with files for which checksums were calculated
     unreadable_files = list() # list of files with read errors or lack of access
     relative_folder = genform(relative_folder)
-
-    # checking files existence, list of non-existent files
-    lostfiles = [f for f in files if not os.path.isfile(f)]
-    
-    if len(lostfiles) > 0:
-        files = [f for f in files if f not in lostfiles]
         
     i=0
     for current_file in files:
@@ -131,14 +128,12 @@ def calc_sha_list(relative_folder,files,shatype):
         if sha_sum == 'File read error':
             unreadable_files.append(stored_filename)
             print("\r!!!UNREADABLE file!!!\033[K", end='')
-            continue
-
-        sha_data[stored_filename]=sha_sum
-
+        else:
+            sha_data[stored_filename]=sha_sum
 
     print("\rFile processing complete\033[K") # '\033[K' clearing line after the string
 
-    return sha_data, unreadable_files, len(lostfiles)
+    return sha_data, unreadable_files
 
 # calculate SHA for all files in folder
 def folder_sha(path):
@@ -153,28 +148,25 @@ def folder_sha(path):
     if files_number == 0:
         return "NO files in this folder. There is nothing to do..."
 
-    text = [f"{files_number} files with a total size of {files_size[1]} were found.",
-            "The program will calculate SHA-1/256/512 checksums for all of them.\n",
-            "Output JSON Database of checksums can be used to check the data integrity.",
-            "SHA-1 is chosen by default due to its superior computational speed.",
-            "SHA-256 and SHA-512 are more reliable, but their computation is slower.\n",
-            "If you choose to use SHA-1 press 'Enter'",
-            "To use SHA-256 enter '2'", "To use SHA-512 enter '3'"]
+    text = [f"{files_number} files with a total size of {files_size[1]} were found.\n",
+            "The program will calculate SHA-1/256/512 checksums for all of them.",
+            "Output JSON Database of checksums can be used to check the data integrity.\n",
+            "\t[1] SHA-1\n\t[2] SHA-256 (default)\n\t[3] SHA-512"]
 
     decorator(text,'-')
 
-    shatype = input("Your choise is: ")
+    shatype = input("What is your choice? ")
 
     if shatype == '3':
         shatype = 'SHA-512'
-    elif shatype == '2':
-        shatype = 'SHA-256'
-    else:
+    elif shatype == '1':
         shatype = 'SHA-1'
+    else:
+        shatype = 'SHA-256'
 
     print(f"{shatype}")
     
-    sha_data, read_error_flist, lostfiles_number = calc_sha_list(path,files,shatype)
+    sha_data, read_error_flist = calc_sha_list(path,files,shatype)
 
     read_error_count = len(read_error_flist)
 
@@ -232,115 +224,116 @@ def verification_list(database_file_path):
     except:
         return "Database file is not readable"
 
-    # stored Dict {files:sha}
-    stored_filelist = stored_data[1]
-    number_of_files = len(stored_filelist)
     shatype = stored_data[0]["SHA type"]
+    
+    # stored Dict {files:sha}
+    stored_filedict = stored_data[1]
+    number_of_files = len(stored_filedict)
 
     # files with access/read error while creating database
     stored_unreadable_filelist = stored_data[2]["Unreadable files"]
 
     # check if the database stores full paths instead of relative ones
     if stored_data[0]["Working folder"] == "Relative":
-        full_path_used = False
         # path to the parent folder of the database file
         check_dir = genform(os.path.dirname(database_file_path))
     else:
-        full_path_used = True
-        wdir = stored_data[0]["Working folder"]
-        if os.path.isdir(wdir):
-            check_dir = wdir
+        if os.path.isdir(stored_data[0]["Working folder"]):
+            check_dir = stored_data[0]["Working folder"]
+            print(f"Working folder: {check_dir}\n")
         else:
             return 'Working folder not available'
 
-    text = [f"You have selected a database file with a list of {number_of_files} files",
-            f"Total size of the files: {stored_data[0]['Total size']}"]
-    
-    decorator(text, '-')
-    
-    if full_path_used:
-        print(f"Working folder: {check_dir}\n")
-    
-    if input("To START verification, type '1' ") != '1':
-        return "Verification canceled by user"
-
     # database stores only relative paths, so conversion required
-    stored_filelist_fullpath = tofull_path(check_dir, list(stored_filelist))
+    stored_filelist_fullpath = tofull_path(check_dir, list(stored_filedict))
 
     # adding previously 'unreadable' filelist to overall list
     if len(stored_unreadable_filelist) > 0:
         stored_filelist_fullpath.extend(tofull_path(check_dir, stored_unreadable_filelist))
 
-    # calculating SHA for stored file list
-    new_data = calc_sha_list(check_dir,stored_filelist_fullpath,shatype)
-    lostfiles_number = new_data[2] # number of files that are in the list but actually not in the folder
-    upd_filelist=dict() # Dict{file:sha} with updated SHA data, files whose checksums are different from the database
+    # filtering missing files
+    stored_filelist_clear = filelist_clear(stored_filelist_fullpath)
+    lostfiles = stored_filelist_clear[1] # list of files that are in the list but actually not in the folder
+    lostfiles_number = len(lostfiles)
 
-    if new_data[0] == stored_filelist:
-        filelist_changed = False
-    else:
-        filelist_changed = True
-
-        for i in new_data[0].keys():
-            if i in stored_filelist.keys():
-                if new_data[0][i] == stored_filelist[i]:
-                    continue
-                else:               
-                    upd_filelist[i] = new_data[0][i]
-            else:
-                print(f"previously unredable {i} is now readable")
-    
     # getting a list of files in the current folder
-    files = filelist_relpath(check_dir)
+    files = filelist_fullpath(check_dir)
 
     # files that are present in the folder but not in the database
-    new_files = [f for f in files if f not in new_data[0].keys() and f not in new_data[1]]
+    new_files = [f for f in files if f not in stored_filelist_clear[0]]
+    newfiles_number = len(new_files)
 
-    len_new_files = len(new_files)
-    len_upd_filelist = len(upd_filelist)
+    text = [f"Selected database contains a list of:",
+            f"{number_of_files} files with a size of {stored_data[0]['Total size']}"]
 
-    # if contents of the folder have not changed, exit function
-    if not filelist_changed and len_new_files == 0:
-        text = [f"All {number_of_files} files were SUCCESSFULLY VERIFIED with {shatype}",
-                "The contents of the folder have not changed."]
-        decorator(text, '=')
-        return "Done"
+    if lostfiles_number > 0 or newfiles_number > 0:
+        text2 = ["***", "The contents of the folder are DIFFERENT from the database!",
+                f"{newfiles_number} NEW file(s) found", f"{lostfiles_number} file(s) missing"]
+        text.extend(text2)
+        decorator(text, '-')
+        choise = input("To update the database with NEW/LOST files only, type '0'\nTo check the data integrity against stored SHA list, type '1': ")
     else:
-        decorator(["The contents of the folder are DIFFERENT from the database."],'-')
-        if len_upd_filelist > 0:
-            if input(f"{len_upd_filelist} file(s) FAILED verification. To display a list of them, type '1': ") == '1':
-                decorator(list(upd_filelist),'.')
+        decorator(text, '-')
+        choise =  input("To START verification, type '1': ")
+   
+    if choise == '0':
         if lostfiles_number > 0:
-            print(f"{lostfiles_number} file(s) from the database not found in the folder")
-        if len_new_files > 0:
-            print(f"{len_new_files} new file(s) were found in the folder")
+            decorator([f"{lostfiles_number} entries of lost files will be removed from the database"])
+            lostfiles_relpath = torel_path(check_dir, lostfiles)
+            for i in lostfiles_relpath:
+                if i in stored_data[1].keys():
+                    del stored_data[1][i]
+                elif i in stored_data[2]["Unreadable files"]:
+                    stored_data[2]["Unreadable files"].remove(i)
 
-        choise = input("To UPDATE database, type '1', to completely RECALCULATE, type '0': ")
-        if choise == '0':
-            folder_sha(check_dir)
+        if newfiles_number > 0:
+            decorator([f"{shatype} for {newfiles_number} NEW file(s) of {filelist_size(new_files)[1]} will be calculated"])
+
+            newfiles_data = calc_sha_list(check_dir, new_files, shatype)
+            stored_data[1].update(newfiles_data[0])
+            stored_data[2]["Unreadable files"].extend(newfiles_data[1])
+
+    elif choise == '1':
+        # calculating SHA for stored file list
+        new_data = calc_sha_list(check_dir, stored_filelist_clear[0], shatype)
+
+        if new_data[0] == stored_filedict:
+            # if contents of the folder have not changed, exit function
+            decorator([f"All {number_of_files} files were SUCCESSFULLY VERIFIED with {shatype}"], '=')
             return "Done"
-
-        elif choise == '1':
-
-            if len_new_files > 0:
-                # new files list with full path
-                new_files = tofull_path(check_dir, new_files)
-                
-                decorator([f"{shatype} for {len_new_files} NEW file(s) of {filelist_size(new_files)[1]} will be calculated"],'.')
-                new_files_data = calc_sha_list(check_dir,new_files,shatype)
-                new_data[0].update(new_files_data[0])
-
-                if len(new_files_data[1]) > 0:
-                    new_data[1].extend(new_files_data[1])
-
-            stored_data[0]["Files number"] = len(new_data[0])
-            stored_data[0]["Total size"] = filelist_size(tofull_path(check_dir,list(new_data[0])))[1]
-
-            if write_summary(check_dir,os.path.basename(database_file_path),[stored_data[0], new_data[0], {"Unreadable files":new_data[1]}]):
-                print("Database successfully updated!")
         else:
-            print("Skipped")
-            
+            upd_filelist=dict() # Dict{file:sha} with updated SHA data, files whose checksums are different from the database
+            for i in new_data[0].keys():
+                if i in stored_filedict.keys():
+                    if new_data[0][i] != stored_filedict[i]:            
+                        upd_filelist[i] = new_data[0][i]
+                else:
+                    print(f"previously unredable {i} is now readable")
+        
+            len_upd_filelist = len(upd_filelist)
+            if len_upd_filelist > 0:
+                if input(f"{len_upd_filelist} file(s) FAILED verification. To display a list of them, type '1': ") == '1':
+                    decorator(list(upd_filelist),'.')
+                choise = input("To UPDATE database, type '1', to completely RECALCULATE, type '0': ")
+                if choise == '0':
+                    folder_sha(check_dir)
+                    return "Done"
+                elif choise == '1':
+                    stored_data[1].update(upd_filelist)
+                else:
+                    print("Skipped")
+                    return "Done"
+            else:
+                decorator([f"All {number_of_files} files were SUCCESSFULLY VERIFIED with {shatype}"], '=')
+                return "Done"          
+    else:
+        return "Canceled by user"
+
+    stored_data[0]["Files number"] = len(stored_data[1])
+    stored_data[0]["Total size"] = filelist_size(tofull_path(check_dir,list(stored_data[1])))[1]
+
+    if write_summary(check_dir,os.path.basename(database_file_path), stored_data):
+        print("Database successfully updated!")
     return "Done"
 
 # verification SHA-256 for a single file Summary
