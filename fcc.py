@@ -22,8 +22,8 @@ def sha_calc(filename, sha_type = 'SHA-256'):
     except:
         return 'File read error'
 
-# converting bytes to readable form
-def converting_bytes(bytes):
+# converting bytes to readable form, int --> str
+def readable_bytes(bytes):
     if not isinstance(bytes,int):
         return "Convertation impossible, variable must be an integer number of bytes"
     converted = bytes
@@ -85,15 +85,16 @@ def tofull_path(path_prefix, filelist):
     filelist_fullpath = [prefix+file for file in filelist]
     return filelist_fullpath
 
-# calculate size of all files in the list, returns: [0] size in bytes, [1] size in readable form
+# calculate size of all files in the list, returns total size in bytes
 def filelist_size(flist):
     try:
         fsize = 0
         for fs in flist:
             fsize += os.path.getsize(fs)
-        return fsize, converting_bytes(fsize)
+        return fsize
     except:
-        return 0,"Unable to get file size"
+        print("Unable to get file size")
+        return 0
 
 # clearing the filelist of non-existent ones, returns [[filelist], [lost files]]
 def filelist_clear(flist):
@@ -110,28 +111,42 @@ def calc_sha_list(relative_folder, files ,shatype):
     sha_data = dict() # dictionary with files for which checksums were calculated
     unreadable_files = list() # list of files with read errors or lack of access
     relative_folder = genform(relative_folder)
+    total_size = filelist_size(files)
+    done_size = 0
+
+    print(f"[>{50 * '-'}]", end = '\r')
         
-    i=0
+    i = 0
     for current_file in files:
-        i+=1
+        # iterating number
+        i += 1
+
+        # calculating SHA for current_file
+        sha_sum = sha_calc(current_file, shatype)
+
         #so that not the entire path to the file is stored in the database, but relative to the specified directory
         stored_filename = current_file.replace(relative_folder, '')
-        if len(stored_filename) > 25:
-            displayed_filename = stored_filename[:25] + '...'
-        else:
-            displayed_filename = stored_filename
-
-        print(f"\rCalculating {shatype} for: {i} of {files_number} files: {displayed_filename}\033[K", end='')
-        
-        sha_sum = sha_calc(current_file, shatype)
 
         if sha_sum == 'File read error':
             unreadable_files.append(stored_filename)
-            print("\r!!!UNREADABLE file!!!\033[K", end='')
         else:
-            sha_data[stored_filename]=sha_sum
+            sha_data[stored_filename] = sha_sum
 
-    print("\rFile processing complete\033[K") # '\033[K' clearing line after the string
+        # adding current file size
+        done_size += os.path.getsize(current_file)
+
+        # percentage of completed
+        perc_done = int(done_size * 100 / total_size)
+
+        # progress bar size is 50, 1/2 of 100%
+        perc_done2 = int(perc_done / 2)
+        perc_left = 50 - perc_done2
+
+        progress_bar = f"[{perc_done2 * '='}>{perc_left * '-'}] {perc_done}%"
+
+        print(f"\r{progress_bar}\033[K", end = '') # '\033[K' clearing line after the string
+
+    print(f"\rChecksums calculation COMPLETED\033[K")
 
     return sha_data, unreadable_files
 
@@ -142,18 +157,18 @@ def folder_sha(path):
 
     # getting values
     files = filelist_fullpath(path)
-    files_size = filelist_size(files) # [0] is size in bytes, [1] in readable form
+    files_size = readable_bytes(filelist_size(files))
     files_number = len(files)
 
     if files_number == 0:
         return "NO files in this folder. There is nothing to do..."
 
-    text = [f"{files_number} files with a total size of {files_size[1]} were found.\n",
+    text = [f"{files_number} files with a total size of {files_size} were found.\n",
             "The program will calculate SHA-1/256/512 checksums for all of them.",
             "Output JSON Database of checksums can be used to check the data integrity.\n",
             "\t[1] SHA-1\n\t[2] SHA-256 (default)\n\t[3] SHA-512"]
 
-    decorator(text,'-')
+    decorator(text)
 
     shatype = input("What is your choice? ")
 
@@ -171,7 +186,7 @@ def folder_sha(path):
     read_error_count = len(read_error_flist)
 
     processed_filelist = tofull_path(path, sha_data.keys())
-    processed_filelist_size = filelist_size(processed_filelist)[1]
+    processed_filelist_size = readable_bytes(filelist_size(processed_filelist))
 
     database_filename = f"shadata_listfor_{folder_name}.json"
 
@@ -192,7 +207,7 @@ def folder_sha(path):
 # calculate SHA for a single file
 def file_sha(file_path):
     file_name = os.path.basename(file_path)
-    file_size = converting_bytes(os.path.getsize(file_path))
+    file_size = readable_bytes(os.path.getsize(file_path))
 
     text = [f"'{file_name}' is a file.", f"Its size is {file_size}", "Calculating checksums for it."]
     decorator(text, '.')
@@ -222,7 +237,7 @@ def verification_list(database_file_path):
         with open(database_file_path, encoding='utf-8') as dfile:
             stored_data = json.load(dfile)
     except:
-        return "Database file is not readable"
+        return "Database is corrupted or unreadable"
 
     shatype = stored_data[0]["SHA type"]
     
@@ -287,7 +302,7 @@ def verification_list(database_file_path):
                     stored_data[2]["Unreadable files"].remove(i)
 
         if newfiles_number > 0:
-            decorator([f"{shatype} for {newfiles_number} NEW file(s) of {filelist_size(new_files)[1]} will be calculated"])
+            decorator([f"{shatype} for {newfiles_number} NEW file(s) of {readable_bytes(filelist_size(new_files))} will be calculated"])
 
             newfiles_data = calc_sha_list(check_dir, new_files, shatype)
             stored_data[1].update(newfiles_data[0])
@@ -330,7 +345,7 @@ def verification_list(database_file_path):
         return "Canceled by user"
 
     stored_data[0]["Files number"] = len(stored_data[1])
-    stored_data[0]["Total size"] = filelist_size(tofull_path(check_dir,list(stored_data[1])))[1]
+    stored_data[0]["Total size"] = readable_bytes(filelist_size(tofull_path(check_dir,list(stored_data[1]))))
 
     if write_summary(check_dir,os.path.basename(database_file_path), stored_data):
         print("Database successfully updated!")
